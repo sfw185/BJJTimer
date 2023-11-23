@@ -15,6 +15,14 @@ body {
   margin-bottom: 20px;
 }
 
+#start, #stop {
+  display: inline-block;
+}
+
+#stop {
+  display: none;
+}
+
 .control-group {
   margin-bottom: 10px;
 }

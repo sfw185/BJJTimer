@@ -29,7 +29,7 @@ function startTimer() {
     startTime = new Date().getTime();
     tInterval = setInterval(getShowTime, 1000);
     startButton.style.display = "none";
-    stopButton.style.display = "block";
+    stopButton.style.display = "inline-block";
   }
 }
 
@@ -37,7 +37,7 @@ function stopTimer() {
   if (running) {
     clearInterval(tInterval);
     running = false;
-    startButton.style.display = "block";
+    startButton.style.display = "inline-block";
     stopButton.style.display = "none";
     updateSetting(); // Reset display to initial round time
   }
