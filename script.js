@@ -7,6 +7,9 @@ let startTime, updatedTime, difference, tInterval;
 let running = false;
 let roundTime = 5 * 60 * 1000; // 5 minutes
 
+let startSound = new Audio('start.wav');
+let finishSound = new Audio('finish.wav');
+
 function updateSetting() {
   let minutes = Math.floor(roundTime / (60 * 1000));
   let seconds = (roundTime % (60 * 1000)) / 1000;
@@ -26,6 +29,7 @@ function changeTime(amount) {
 function startTimer() {
   if (!running) {
     running = true;
+    startSound.play();
     startTime = new Date().getTime();
     tInterval = setInterval(getShowTime, 1000);
     startButton.style.display = "none";
@@ -48,6 +52,7 @@ function getShowTime() {
   difference = roundTime - (updatedTime - startTime);
 
   if (difference <= 0) {
+    finishSound.play();
     startTime = new Date().getTime(); // Restart the timer for next round
   }
 
