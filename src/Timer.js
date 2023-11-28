@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Button } from 'react-bootstrap';
 import './Timer.css';
 const startSound = new Audio('start.wav');
 const finishSound = new Audio('finish.wav');
 const SECOND = 1000;
-
 
 const Timer = () => {
     const [roundTime, setRoundTime] = useState(5 * 60 * SECOND);
@@ -80,23 +80,36 @@ const Timer = () => {
     };
 
     return (
-        <div id="timer">
-            <div className="control-group">
-                <label>Round Time:</label>
-                <button onClick={() => changeRoundTime(-30)}>-</button>
-                <span>{formatTime(roundTime)}</span>
-                <button onClick={() => changeRoundTime(30)}>+</button>
-            </div>
-            <div className="control-group">
-                <label>Rest Time:</label>
-                <button onClick={() => changeRestTime(-10)}>-</button>
-                <span>{formatTime(restTime)}</span>
-                <button onClick={() => changeRestTime(10)}>+</button>
-            </div>
-            <div id="display">{formatTime(timeLeft)}</div>
-            <button onClick={toggleTimer}>{running ? 'Pause' : 'Start'}</button>
-            {running && <button onClick={resetTimer}>Reset</button>}
-        </div>
+        <Container id="timer">
+            <Row className="justify-content-center my-4">
+                <Col md="auto">
+                    <div id="display">{formatTime(timeLeft)}</div>
+                </Col>
+            </Row>
+            <Row className="justify-content-center my-2">
+                <Col md="auto" className="control-group">
+                    <label>Round Time:</label>&nbsp;
+                    <Button variant="secondary" onClick={() => changeRoundTime(-30)}>-</Button>
+                    &nbsp;<span>{formatTime(roundTime)}</span>&nbsp;
+                    <Button variant="secondary" onClick={() => changeRoundTime(30)}>+</Button>
+                </Col>
+            </Row>
+            <Row className="justify-content-center my-2">
+                <Col md="auto" className="control-group">
+                    <label>Rest Time:</label>&nbsp;
+                    <Button variant="secondary" onClick={() => changeRestTime(-10)}>-</Button>
+                    &nbsp;<span>{formatTime(restTime)}</span>&nbsp;
+                    <Button variant="secondary" onClick={() => changeRestTime(10)}>+</Button>
+                </Col>
+            </Row>
+            <Row className="justify-content-center my-2">
+                <Col md="auto">
+                    <Button variant="success" onClick={toggleTimer}>{running ? 'Pause' : 'Start'}</Button>
+                    {' '}
+                    {running && <Button variant="dark" onClick={resetTimer}>Reset</Button>}
+                </Col>
+            </Row>
+        </Container>
     );
 };
 
