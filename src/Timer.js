@@ -88,7 +88,7 @@ const Timer = () => {
             </Row>
             <Row className="justify-content-center my-2">
                 <Col md="auto" className="control-group">
-                    <label>Round Time:</label>&nbsp;
+                    <label>Round:</label>&nbsp;
                     <Button variant="secondary" onClick={() => changeRoundTime(-30)}>-</Button>
                     &nbsp;<span>{formatTime(roundTime)}</span>&nbsp;
                     <Button variant="secondary" onClick={() => changeRoundTime(30)}>+</Button>
@@ -96,7 +96,7 @@ const Timer = () => {
             </Row>
             <Row className="justify-content-center my-2">
                 <Col md="auto" className="control-group">
-                    <label>Rest Time:</label>&nbsp;
+                    <label>Rest:</label>&nbsp;
                     <Button variant="secondary" onClick={() => changeRestTime(-10)}>-</Button>
                     &nbsp;<span>{formatTime(restTime)}</span>&nbsp;
                     <Button variant="secondary" onClick={() => changeRestTime(10)}>+</Button>
