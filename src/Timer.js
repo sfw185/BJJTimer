@@ -9,6 +9,8 @@ const Timer = () => {
     const [roundTime, setRoundTime] = useState(5 * 60 * SECOND);
     const [restTime, setRestTime] = useState(20 * SECOND);
     const [currentTimer, setCurrentTimer] = useState('round'); // 'round' or 'rest'
+    const [currentRound, setCurrentRound] = useState(1);
+    const [isRestTime, setIsRestTime] = useState(false);
     const [running, setRunning] = useState(false);
     const [startTime, setStartTime] = useState(null);
     const [timeLeft, setTimeLeft] = useState(roundTime);
@@ -19,18 +21,19 @@ const Timer = () => {
             setStartTime(new Date().getTime());
             interval = setInterval(() => {
                 const updatedTime = new Date().getTime();
-                const totalTime = currentTimer === 'round' ? roundTime : restTime;
+                const totalTime = isRestTime ? restTime : roundTime;
                 const difference = totalTime - (updatedTime - startTime);
                 setTimeLeft(difference <= 0 ? totalTime : difference);
 
                 if (difference <= 0) {
-                    if (currentTimer === 'round') {
-                        finishSound.play();
-                        setCurrentTimer('rest');
+                    if (isRestTime) {
+                        startSound.play();
+                        setIsRestTime(false);
+                        setCurrentRound(currentRound + 1);
                         setStartTime(updatedTime);
                     } else {
-                        startSound.play();
-                        setCurrentTimer('round');
+                        finishSound.play();
+                        setIsRestTime(true);
                         setStartTime(updatedTime);
                     }
                 }
@@ -38,7 +41,8 @@ const Timer = () => {
         }
 
         return () => clearInterval(interval);
-    }, [running, roundTime, restTime, currentTimer, startTime]);
+    }, [running, roundTime, restTime, isRestTime, startTime, currentRound]);
+
 
     const toggleTimer = () => {
         if (!running) {
@@ -54,7 +58,8 @@ const Timer = () => {
     const resetTimer = () => {
         setRunning(false);
         setTimeLeft(roundTime);
-        setCurrentTimer('round');
+        setCurrentRound(1);
+        setIsRestTime(false);
     };
 
     const changeRoundTime = (amount) => {
@@ -81,6 +86,13 @@ const Timer = () => {
 
     return (
         <Container id="timer">
+            <Row className="justify-content-center my-2">
+                <Col md="auto">
+                    <div className="status-display">
+                        {running ? (isRestTime ? 'Rest Time' : `Round ${currentRound}`) : 'Timer Stopped'}
+                    </div>
+                </Col>
+            </Row>
             <Row className="justify-content-center my-4">
                 <Col md="auto">
                     <div id="display">{formatTime(timeLeft)}</div>

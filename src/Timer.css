@@ -12,6 +12,11 @@ body {
   text-align: center;
 }
 
+.status-display {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
 #display {
   font-size: 250px;
   margin-bottom: 20px;
