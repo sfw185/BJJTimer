@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import './Timer.css';
+import { loadFromLocalStorage, saveToLocalStorage } from './utils/storage';
 const startSound = new Audio('start.wav');
 const finishSound = new Audio('finish.wav');
 const SECOND = 1000;
 
 const Timer = () => {
-    const [roundTime, setRoundTime] = useState(5 * 60 * SECOND);
-    const [restTime, setRestTime] = useState(20 * SECOND);
+    const [roundTime, setRoundTime] = useState(loadFromLocalStorage('roundTime', 5 * 60 * SECOND));
+    const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
     const [currentTimer, setCurrentTimer] = useState('round'); // 'round' or 'rest'
     const [currentRound, setCurrentRound] = useState(1);
     const [isRestTime, setIsRestTime] = useState(false);
@@ -65,6 +66,7 @@ const Timer = () => {
     const changeRoundTime = (amount) => {
         const newTime = Math.max(30 * SECOND, roundTime + amount * SECOND);
         setRoundTime(newTime);
+        saveToLocalStorage('roundTime', newTime);
         if (!running && currentTimer === 'round') {
             setTimeLeft(newTime);
         }
@@ -73,6 +75,7 @@ const Timer = () => {
     const changeRestTime = (amount) => {
         const newTime = Math.max(10 * SECOND, restTime + amount * SECOND);
         setRestTime(newTime);
+        saveToLocalStorage('restTime', newTime);
         if (!running && currentTimer === 'rest') {
             setTimeLeft(newTime);
         }
