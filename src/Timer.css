@@ -44,3 +44,13 @@ body {
     margin-bottom: 20px;
   }
 }
+
+@media screen and (min-width: 1501px) {
+  .current-time, .status-display {
+    font-size: 8rem;
+  }
+
+  #display {
+    font-size: 32rem;
+  }
+}
