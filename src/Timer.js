@@ -10,6 +10,7 @@ const SECOND = 1000;
 const RENDER_RATE = 250; // 4 updates a second
 
 const Timer = () => {
+    const [currentTime, setCurrentTime] = useState(new Date());
     const [roundTime, setRoundTime] = useState(loadFromLocalStorage('roundTime', 5 * 60 * SECOND));
     const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
     const [currentRound, setCurrentRound] = useState(0);
@@ -18,6 +19,7 @@ const Timer = () => {
     const [startTime, setStartTime] = useState(null);
     const [timeLeft, setTimeLeft] = useState(roundTime);
 
+    // Set up timer to refresh every 250ms
     useEffect(() => {
         let interval;
         if (running) {
@@ -27,6 +29,16 @@ const Timer = () => {
 
         return () => clearInterval(interval);
     }, [running, roundTime, restTime, isRestTime, startTime, currentRound]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Show current time
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
 
     const tick = () => {
         const updatedTime = now();
@@ -105,8 +117,27 @@ const Timer = () => {
         return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     };
 
+    const formatCurrentTime = (date) => {
+        let hours = date.getHours();
+        let minutes = date.getMinutes();
+        const ampm = hours >= 12 ? 'pm' : 'am';
+
+        hours = hours % 12;
+        hours = hours || 12; // Convert '0' to '12'
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+
+        return `${hours}:${minutes} ${ampm}`;
+    };
+
     return (
         <Container id="timer">
+            <Row className="justify-content-center my-2">
+                <Col md="auto">
+                    <div className="current-time">
+                        { formatCurrentTime(currentTime) }
+                    </div>
+                </Col>
+            </Row>
             <Row className="justify-content-center my-2">
                 <Col md="auto">
                     <div className="status-display">
