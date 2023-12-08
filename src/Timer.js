@@ -28,7 +28,8 @@ const Timer = () => {
         let interval;
         if (running) {
             setStartTime(new Date().getTime());
-            setSoonSoundPlayed(false); // Reset soonSound for the new round
+            setSoonSoundPlayed(false);
+            setReadySoundPlayed(false);
             interval = setInterval(tick, RENDER_RATE);
         }
 
@@ -171,30 +172,29 @@ const Timer = () => {
                     <div id="display">{formatTime(timeLeft)}</div>
                 </Col>
             </Row>
-            <Row className="justify-content-center my-1">
-                <Col xs={4} className="text-md-right">
-                    <label>Round:</label>
+            <Row className="justify-content-center my-2">
+                <Col xs={12} md={6}>
+                    <div className="d-flex justify-content-between">
+                        <div>
+                            <label>Round:</label>
+                            <Button variant="secondary" size="sm" onClick={() => changeRoundTime(-30)}>-</Button>
+                            &nbsp;<span>{formatTime(roundTime)}</span>&nbsp;
+                            <Button variant="secondary" size="sm" onClick={() => changeRoundTime(30)}>+</Button>
+                        </div>
+                        <div>
+                            <label>Rest:</label>
+                            <Button variant="secondary" size="sm" onClick={() => changeRestTime(-10)}>-</Button>
+                            &nbsp;<span>{formatTime(restTime)}</span>&nbsp;
+                            <Button variant="secondary" size="sm" onClick={() => changeRestTime(10)}>+</Button>
+                        </div>
+                    </div>
                 </Col>
-                <Col xs={4}>
-                    <Button variant="secondary" onClick={() => changeRoundTime(-30)}>-</Button>
-                    &nbsp;<span>{formatTime(roundTime)}</span>&nbsp;
-                    <Button variant="secondary" onClick={() => changeRoundTime(30)}>+</Button>
-                </Col>
-                <Col xs={4}>
-                    <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer}>{running ? 'Stop' : 'Start'}</Button>
-                </Col>
-            </Row>
-            <Row className="justify-content-center my-1">
-                <Col xs={4} className="text-xs-right">
-                    <label>Rest:</label>
-                </Col>
-                <Col xs={4}>
-                    <Button variant="secondary" onClick={() => changeRestTime(-10)}>-</Button>
-                    &nbsp;<span>{formatTime(restTime)}</span>&nbsp;
-                    <Button variant="secondary" onClick={() => changeRestTime(10)}>+</Button>
-                </Col>
-                <Col xs={4}>
-                    <Button variant="dark" onClick={resetTimer}>Reset</Button>
+                <Col xs={12} md={6} className="d-flex justify-content-center mt-3 mt-md-0">
+                    <div>
+                        <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer}>{running ? 'Stop' : 'Start'}</Button>
+                        &nbsp;
+                        <Button variant="dark" onClick={resetTimer}>Reset</Button>
+                    </div>
                 </Col>
             </Row>
         </Container>

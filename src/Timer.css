@@ -15,11 +15,12 @@ body {
 .current-time {
   font-size: 4rem;
   font-weight: bold;
-  border-bottom: 1px solid #FFF;
 }
 
 .status-display {
   font-size: 4rem;
+  border-top: 1px solid #FFF;
+  border-bottom: 1px solid #FFF;
 }
 
 #display {
