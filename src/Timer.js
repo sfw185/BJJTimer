@@ -141,40 +141,46 @@ const Timer = () => {
 
     return (
         <Container id="timer">
-            <Row className="justify-content-center my-2">
+            <Row className="justify-content-center my-0">
                 <Col md="auto">
                     <div className="current-time">
                         { formatCurrentTime(currentTime) }
                     </div>
                 </Col>
             </Row>
-            <Row className="justify-content-center my-2">
+            <Row className="justify-content-center mt-1">
                 <Col md="auto">
                     <div className="status-display">
                         {running ? (isRestTime ? 'Rest Time' : `Round ${currentRound}`) : 'Timer Stopped'}
                     </div>
                 </Col>
             </Row>
-            <Row className="justify-content-center my-4">
+            <Row className="justify-content-center my-0">
                 <Col md="auto">
                     <div id="display">{formatTime(timeLeft)}</div>
                 </Col>
             </Row>
-            <Row className="justify-content-center my-2">
-                <Col md={6} className="control-group">
-                    <label>Round:</label>&nbsp;
+            <Row className="justify-content-center my-1">
+                <Col xs={6} md={3} className="text-md-right">
+                    <label>Round:</label>
+                </Col>
+                <Col xs={6} md={3}>
                     <Button variant="secondary" onClick={() => changeRoundTime(-30)}>-</Button>
                     &nbsp;<span>{formatTime(roundTime)}</span>&nbsp;
                     <Button variant="secondary" onClick={() => changeRoundTime(30)}>+</Button>
                 </Col>
-                <Col md={6} className="control-group">
-                    <label>Rest:</label>&nbsp;
+            </Row>
+            <Row className="justify-content-center my-1">
+                <Col xs={6} md={3} className="text-md-right">
+                    <label>Rest:</label>
+                </Col>
+                <Col xs={6} md={3}>
                     <Button variant="secondary" onClick={() => changeRestTime(-10)}>-</Button>
                     &nbsp;<span>{formatTime(restTime)}</span>&nbsp;
                     <Button variant="secondary" onClick={() => changeRestTime(10)}>+</Button>
                 </Col>
             </Row>
-            <Row className="justify-content-center my-2">
+            <Row className="justify-content-center mt-4">
                 <Col md="auto">
                     <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer}>{running ? 'Stop' : 'Start'}</Button>
                     &nbsp;

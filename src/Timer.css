@@ -39,18 +39,15 @@ body {
   #display {
     font-size: 6rem;
   }
-
-  .control-group {
-    margin-bottom: 20px;
-  }
 }
 
 @media screen and (min-width: 1501px) {
   .current-time, .status-display {
-    font-size: 8rem;
+    font-size: 2rem;
   }
 
   #display {
-    font-size: 32rem;
+    font-size: 28rem;
+    margin: 0;
   }
 }
