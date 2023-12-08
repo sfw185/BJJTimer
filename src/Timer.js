@@ -4,6 +4,7 @@ import './Timer.css';
 import { loadFromLocalStorage, saveToLocalStorage } from './utils/storage';
 
 const startSound = new Audio('start.mp3');
+const soonSound = new Audio('soon.mp3');
 const finishSound = new Audio('finish.mp3');
 
 const SECOND = 1000;
@@ -13,6 +14,7 @@ const Timer = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [roundTime, setRoundTime] = useState(loadFromLocalStorage('roundTime', 5 * 60 * SECOND));
     const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
+    const [soonSoundPlayed, setSoonSoundPlayed] = useState(false);
     const [currentRound, setCurrentRound] = useState(0);
     const [isRestTime, setIsRestTime] = useState(false);
     const [running, setRunning] = useState(false);
@@ -24,6 +26,7 @@ const Timer = () => {
         let interval;
         if (running) {
             setStartTime(new Date().getTime());
+            setSoonSoundPlayed(false); // Reset soonSound for the new round
             interval = setInterval(tick, RENDER_RATE);
         }
 
@@ -46,6 +49,11 @@ const Timer = () => {
         const difference = totalTime - (updatedTime - startTime);
         setTimeLeft(difference <= 0 ? totalTime : difference);
 
+        if (difference === 10 * SECOND && !soonSoundPlayed) {
+            soonSound.play();
+            setSoonSoundPlayed(true);
+        }
+
         if (difference <= 0) {
             if (isRestTime) {
                 // Transition from Rest to a New Round
@@ -63,12 +71,14 @@ const Timer = () => {
     const startRound = () => {
         // Explicitly loading audio here as some browsers don't like it happening outside of a user interaction
         startSound.load();
+        soonSound.load();
         finishSound.load();
 
         startSound.play();
         setIsRestTime(false);
         setCurrentRound(currentRound => currentRound + 1)
         setStartTime(now());
+        setSoonSoundPlayed(false);
     }
 
     const startRest = () => {
