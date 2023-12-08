@@ -3,8 +3,9 @@ import { Container, Row, Col, Button } from 'react-bootstrap';
 import './Timer.css';
 import { loadFromLocalStorage, saveToLocalStorage } from './utils/storage';
 
-const startSound = new Audio('start.mp3');
+const startSound = new Audio('go.mp3');
 const soonSound = new Audio('soon.mp3');
+const readySound = new Audio('ready.mp3');
 const finishSound = new Audio('finish.mp3');
 
 const SECOND = 1000;
@@ -15,6 +16,7 @@ const Timer = () => {
     const [roundTime, setRoundTime] = useState(loadFromLocalStorage('roundTime', 5 * 60 * SECOND));
     const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
     const [soonSoundPlayed, setSoonSoundPlayed] = useState(false);
+    const [readySoundPlayed, setReadySoundPlayed] = useState(false);
     const [currentRound, setCurrentRound] = useState(0);
     const [isRestTime, setIsRestTime] = useState(false);
     const [running, setRunning] = useState(false);
@@ -49,9 +51,14 @@ const Timer = () => {
         const difference = totalTime - (updatedTime - startTime);
         setTimeLeft(difference <= 0 ? totalTime : difference);
 
-        if (difference <= 10 * SECOND && difference > (10 * SECOND - RENDER_RATE) && !soonSoundPlayed) {
-            soonSound.play();
-            setSoonSoundPlayed(true);
+        if (difference <= 10 * SECOND && difference > (10 * SECOND - RENDER_RATE)) {
+            if (isRestTime && !readySoundPlayed) {
+                readySound.play();
+                setReadySoundPlayed(true);
+            } else if (!isRestTime && !soonSoundPlayed) {
+                soonSound.play();
+                setSoonSoundPlayed(true);
+            }
         }
 
         if (difference <= 0) {
@@ -72,12 +79,14 @@ const Timer = () => {
         // Explicitly loading audio here as some browsers don't like it happening outside of a user interaction
         startSound.load();
         soonSound.load();
+        readySound.load();
         finishSound.load();
 
         startSound.play();
         setIsRestTime(false);
         setCurrentRound(currentRound => currentRound + 1)
         setStartTime(now());
+        setReadySoundPlayed(false);
         setSoonSoundPlayed(false);
     }
 
@@ -85,6 +94,7 @@ const Timer = () => {
         finishSound.play();
         setIsRestTime(true);
         setStartTime(now());
+        setReadySoundPlayed(false);
         setSoonSoundPlayed(false);
     }
 
