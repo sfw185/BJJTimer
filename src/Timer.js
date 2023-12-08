@@ -49,7 +49,7 @@ const Timer = () => {
         const difference = totalTime - (updatedTime - startTime);
         setTimeLeft(difference <= 0 ? totalTime : difference);
 
-        if (difference === 10 * SECOND && !soonSoundPlayed) {
+        if (difference <= 10 * SECOND && difference > (10 * SECOND - RENDER_RATE) && !soonSoundPlayed) {
             soonSound.play();
             setSoonSoundPlayed(true);
         }
@@ -85,6 +85,7 @@ const Timer = () => {
         finishSound.play();
         setIsRestTime(true);
         setStartTime(now());
+        setSoonSoundPlayed(false);
     }
 
     const toggleTimer = () => {
@@ -161,29 +162,28 @@ const Timer = () => {
                 </Col>
             </Row>
             <Row className="justify-content-center my-1">
-                <Col xs={6} md={3} className="text-md-right">
+                <Col xs={4} className="text-md-right">
                     <label>Round:</label>
                 </Col>
-                <Col xs={6} md={3}>
+                <Col xs={4}>
                     <Button variant="secondary" onClick={() => changeRoundTime(-30)}>-</Button>
                     &nbsp;<span>{formatTime(roundTime)}</span>&nbsp;
                     <Button variant="secondary" onClick={() => changeRoundTime(30)}>+</Button>
                 </Col>
+                <Col xs={4}>
+                    <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer}>{running ? 'Stop' : 'Start'}</Button>
+                </Col>
             </Row>
             <Row className="justify-content-center my-1">
-                <Col xs={6} md={3} className="text-md-right">
+                <Col xs={4} className="text-xs-right">
                     <label>Rest:</label>
                 </Col>
-                <Col xs={6} md={3}>
+                <Col xs={4}>
                     <Button variant="secondary" onClick={() => changeRestTime(-10)}>-</Button>
                     &nbsp;<span>{formatTime(restTime)}</span>&nbsp;
                     <Button variant="secondary" onClick={() => changeRestTime(10)}>+</Button>
                 </Col>
-            </Row>
-            <Row className="justify-content-center mt-4">
-                <Col md="auto">
-                    <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer}>{running ? 'Stop' : 'Start'}</Button>
-                    &nbsp;
+                <Col xs={4}>
                     <Button variant="dark" onClick={resetTimer}>Reset</Button>
                 </Col>
             </Row>
