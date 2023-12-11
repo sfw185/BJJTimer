@@ -10,6 +10,8 @@ const finishSound = new Audio('finish.mp3');
 
 const SECOND = 1000;
 const RENDER_RATE = 250; // 4 updates a second
+const READY_TIME = 3 * SECOND;
+const SOON_TIME = 10 * SECOND;
 
 const Timer = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -52,14 +54,16 @@ const Timer = () => {
         const difference = totalTime - (updatedTime - startTime);
         setTimeLeft(difference <= 0 ? totalTime : difference);
 
-        if (difference <= 10 * SECOND && difference > (10 * SECOND - RENDER_RATE)) {
-            if (isRestTime && !readySoundPlayed) {
-                readySound.play();
-                setReadySoundPlayed(true);
-            } else if (!isRestTime && !soonSoundPlayed) {
-                soonSound.play();
-                setSoonSoundPlayed(true);
-            }
+        // Play "ready" before round starts
+        if (difference <= READY_TIME && difference > (READY_TIME - RENDER_RATE) && isRestTime && !readySoundPlayed) {
+            readySound.play();
+            setReadySoundPlayed(true);
+        }
+
+        // Play "soon" before round ends
+        if (difference <= SOON_TIME && difference > (SOON_TIME - RENDER_RATE) && !isRestTime && !soonSoundPlayed) {
+            soonSound.play();
+            setSoonSoundPlayed(true);
         }
 
         if (difference <= 0) {
