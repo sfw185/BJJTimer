@@ -7,10 +7,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'logo192.png', 'logo512.png'],
-      manifest: false,
+      includeAssets: [
+        'favicon.ico',
+        'logo192.png',
+        'logo512.png',
+        'go.mp3',
+        'soon.mp3',
+        'ready.mp3',
+        'finish.mp3'
+      ],
+      manifest: false, // Use existing manifest file
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,mp3}']
       }
     })
   ],
