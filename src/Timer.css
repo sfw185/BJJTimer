@@ -18,9 +18,13 @@ body {
   text-align: center;
 }
 
+.round-phase #display {}
+.rest-phase #display  { color: #0af; }
+
 .current-time {
   font-size: 4rem;
   font-weight: bold;
+  color: #AAA;
 }
 
 .status-display {
@@ -32,6 +36,17 @@ body {
 #display {
   font-size: 18rem;
   margin-bottom: 20px;
+  transition: color 0.5s, opacity 0.5s;
+}
+
+.ending-soon {
+  color: #dc3545 !important;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 .control-group div {
@@ -40,6 +55,10 @@ body {
 
 .control-group label {
   margin-right: 5px;
+}
+
+@media (max-width: 480px) {
+  #display { font-size: 4rem; }
 }
 
 @media screen and (max-width: 768px) {

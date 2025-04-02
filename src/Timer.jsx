@@ -46,13 +46,13 @@ const Timer = () => {
         }
     };
 
-    // Update current time every second
     useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
+        // Update current time every minute
+        const interval = setInterval(() => setCurrentTime(new Date()), 10000);
+        setCurrentTime(new Date()); // set initial
         return () => clearInterval(interval);
     }, []);
+
 
     // Start a new round
     const startRound = useCallback(() => {
@@ -178,7 +178,7 @@ const Timer = () => {
     };
 
     return (
-        <Container id="timer">
+        <Container id="timer" className={isRestTime ? 'rest-phase' : 'round-phase'}>
             <Row className="justify-content-center my-0">
                 <Col md="auto">
                     <div className="current-time">
@@ -189,13 +189,15 @@ const Timer = () => {
             <Row className="justify-content-center mt-1">
                 <Col md="auto">
                     <div className="status-display">
-                        {running ? (isRestTime ? `Rest ${currentRound}` : `Round ${currentRound}`) : 'Timer Stopped'}
+                        {running ? (isRestTime ? `Rest ${currentRound}` : `Round ${currentRound}`) : 'Stopped'}
                     </div>
                 </Col>
             </Row>
             <Row className="justify-content-center my-0">
                 <Col md="auto">
-                    <div id="display">{formatTime(timeLeft)}</div>
+                    <div id="display" className={!isRestTime && timeLeft <= SOON_TIME ? 'ending-soon' : ''}>
+                        {formatTime(timeLeft)}
+                    </div>
                 </Col>
             </Row>
             <Row className="justify-content-center my-2">
@@ -203,15 +205,15 @@ const Timer = () => {
                     <div className="d-flex justify-content-between">
                         <div>
                             <label>Round:</label>
-                            <Button variant="secondary" size="sm" onClick={() => changeRoundTime(-30)}>-</Button>
-                            &nbsp;<span>{formatTime(roundTime)}</span>&nbsp;
-                            <Button variant="secondary" size="sm" onClick={() => changeRoundTime(30)}>+</Button>
+                            <Button variant="secondary" size="me" onClick={() => changeRoundTime(-30)}>-</Button>
+                            <span className="mx-1">{formatTime(roundTime)}</span>
+                            <Button variant="secondary" size="me" onClick={() => changeRoundTime(30)}>+</Button>
                         </div>
                         <div>
                             <label>Rest:</label>
-                            <Button variant="secondary" size="sm" onClick={() => changeRestTime(-10)}>-</Button>
-                            &nbsp;<span>{formatTime(restTime)}</span>&nbsp;
-                            <Button variant="secondary" size="sm" onClick={() => changeRestTime(10)}>+</Button>
+                            <Button variant="secondary" size="me" onClick={() => changeRestTime(-10)}>-</Button>
+                            <span className="mx-1">{formatTime(restTime)}</span>
+                            <Button variant="secondary" size="me" onClick={() => changeRestTime(10)}>+</Button>
                         </div>
                     </div>
                 </Col>
