@@ -16,6 +16,7 @@ const Timer = () => {
     const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
     const [currentRound, setCurrentRound] = useState(0);
     const [isRestTime, setIsRestTime] = useState(false);
+    const [isReadyStage, setIsReadyStage] = useState(false);
     const [running, setRunning] = useState(false);
     const [timeLeft, setTimeLeft] = useState(roundTime);
 
@@ -60,8 +61,19 @@ const Timer = () => {
         startSound.current.play();
         startTime.current = Date.now();
         setIsRestTime(false);
+        setIsReadyStage(false);
         setCurrentRound(prevRound => prevRound + 1);
         readySoundPlayed.current = false;
+        soonSoundPlayed.current = false;
+    }, []);
+
+    // Start the ready stage
+    const startReadyStage = useCallback(() => {
+        initializeAudio();
+        readySound.current.play();
+        startTime.current = Date.now();
+        setIsReadyStage(true);
+        readySoundPlayed.current = true;
         soonSoundPlayed.current = false;
     }, []);
 
@@ -79,30 +91,40 @@ const Timer = () => {
         if (!running) return;
 
         const updatedTime = Date.now();
-        const totalTime = isRestTime ? restTime : roundTime;
+        let totalTime;
+        if (isReadyStage) {
+            totalTime = READY_TIME;
+        } else if (isRestTime) {
+            totalTime = restTime;
+        } else {
+            totalTime = roundTime;
+        }
+        
         const difference = totalTime - (updatedTime - startTime.current);
         setTimeLeft(difference <= 0 ? 0 : difference);
 
-        // Play "ready" sound before round starts
-        if (difference <= READY_TIME && difference > (READY_TIME - RENDER_RATE) && isRestTime && !readySoundPlayed.current) {
+        // Play "ready" sound before round starts when in rest mode
+        if (difference <= READY_TIME && difference > (READY_TIME - RENDER_RATE) && isRestTime && !isReadyStage && !readySoundPlayed.current) {
             readySound.current.play();
             readySoundPlayed.current = true;
         }
 
         // Play "soon" sound before round ends
-        if (difference <= SOON_TIME && difference > (SOON_TIME - RENDER_RATE) && !isRestTime && !soonSoundPlayed.current) {
+        if (difference <= SOON_TIME && difference > (SOON_TIME - RENDER_RATE) && !isRestTime && !isReadyStage && !soonSoundPlayed.current) {
             soonSound.current.play();
             soonSoundPlayed.current = true;
         }
 
         if (difference <= 0) {
-            if (isRestTime) {
+            if (isReadyStage) {
+                startRound();
+            } else if (isRestTime) {
                 startRound();
             } else {
                 startRest();
             }
         }
-    }, [running, isRestTime, restTime, roundTime, startRound, startRest]);
+    }, [running, isRestTime, isReadyStage, restTime, roundTime, startRound, startRest]);
 
     // Custom hook to handle intervals with the latest state
     function useInterval(callback, delay) {
@@ -128,7 +150,12 @@ const Timer = () => {
     const toggleTimer = () => {
         initializeAudio();
         if (!running) {
-            startRound();
+            // If this is the first round, start with the ready stage
+            if (currentRound === 0) {
+                startReadyStage();
+            } else {
+                startRound();
+            }
             setRunning(true);
         } else {
             setRunning(false);
@@ -139,6 +166,7 @@ const Timer = () => {
         setRunning(false);
         setCurrentRound(0);
         setIsRestTime(false);
+        setIsReadyStage(false);
         setTimeLeft(roundTime);
     };
 
@@ -178,7 +206,7 @@ const Timer = () => {
     };
 
     return (
-        <Container id="timer" className={isRestTime ? 'rest-phase' : 'round-phase'}>
+        <Container id="timer" className={isRestTime || isReadyStage ? 'rest-phase' : 'round-phase'}>
             <Row className="justify-content-center my-0">
                 <Col md="auto">
                     <div className="current-time">
@@ -189,7 +217,7 @@ const Timer = () => {
             <Row className="justify-content-center mt-1">
                 <Col md="auto">
                     <div className="status-display">
-                        {running ? (isRestTime ? `Rest ${currentRound}` : `Round ${currentRound}`) : 'Stopped'}
+                        {running ? (isReadyStage ? 'Get Ready' : (isRestTime ? `Rest ${currentRound}` : `Round ${currentRound}`)) : 'Stopped'}
                     </div>
                 </Col>
             </Row>
