@@ -112,7 +112,7 @@ const Timer = () => {
         } else {
             totalTime = roundTime;
         }
-        
+
         const difference = totalTime - (updatedTime - startTime.current);
         setTimeLeft(difference <= 0 ? 0 : difference);
 
@@ -219,7 +219,7 @@ const Timer = () => {
     };
 
     return (
-        <Container id="timer" className={isRestTime || isReadyStage ? 'rest-phase' : 'round-phase'}>
+        <Container fluid id="timer" className={isRestTime || isReadyStage ? 'rest-phase' : 'round-phase'}>
             <Settings />
             <Row className="justify-content-center my-0">
                 <Col md="auto">
@@ -243,28 +243,25 @@ const Timer = () => {
                 </Col>
             </Row>
             <Row className="justify-content-center my-2">
-                <Col xs={12} md={6}>
-                    <div className="d-flex justify-content-between">
-                        <div>
+                <Col xs={12} lg={10} xl={8} className="mx-auto">
+                    <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-4">
+                        <div className="timer-control-group">
                             <label className="me-2">Round:</label>
                             <Button variant="secondary" size="sm" onClick={() => changeRoundTime(-30)} className="d-inline-flex align-items-center"><DashLg /></Button>
                             <span className="mx-2">{formatTime(roundTime)}</span>
                             <Button variant="secondary" size="sm" onClick={() => changeRoundTime(30)} className="d-inline-flex align-items-center"><PlusLg /></Button>
                         </div>
-                        <div>
+                        <div className="timer-control-group">
                             <label className="me-2">Rest:</label>
                             <Button variant="secondary" size="sm" onClick={() => changeRestTime(-10)} className="d-inline-flex align-items-center"><DashLg /></Button>
                             <span className="mx-2">{formatTime(restTime)}</span>
                             <Button variant="secondary" size="sm" onClick={() => changeRestTime(10)} className="d-inline-flex align-items-center"><PlusLg /></Button>
                         </div>
                     </div>
-                </Col>
-                <Col xs={12} md={6} className="d-flex justify-content-center mt-3 mt-md-0">
-                    <div>
-                        <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer} className="d-flex align-items-center">
+                    <div className="d-flex justify-content-center mt-4">
+                        <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer} className="d-flex align-items-center me-3">
                             {running ? <><StopFill className="me-1" /> Stop</> : <><PlayFill className="me-1" /> Start</>}
                         </Button>
-                        &nbsp;
                         <Button variant="dark" onClick={resetTimer} className="d-flex align-items-center">
                             <ArrowCounterclockwise className="me-1" /> Reset
                         </Button>
