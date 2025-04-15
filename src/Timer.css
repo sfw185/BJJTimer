@@ -1,3 +1,11 @@
+:root {
+  --background-color: #000;
+  --text-color: #FFF;
+  --current-time-color: #AAA;
+  --rest-phase-color: #0af;
+  --ending-soon-color: #dc3545;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -10,27 +18,28 @@ body {
   align-items: center;
   height: 100vh;
   font-family: Arial, sans-serif;
-  color: #FFF;
-  background-color: #000;
+  color: var(--text-color);
+  background-color: var(--background-color);
 }
 
 #timer {
   text-align: center;
+  position: relative;
 }
 
-.round-phase #display {}
-.rest-phase #display  { color: #0af; }
+.round-phase #display { color: var(--text-color); }
+.rest-phase #display { color: var(--rest-phase-color); }
 
 .current-time {
   font-size: 4rem;
   font-weight: bold;
-  color: #AAA;
+  color: var(--current-time-color);
 }
 
 .status-display {
   font-size: 4rem;
-  border-top: 1px solid #FFF;
-  border-bottom: 1px solid #FFF;
+  border-top: 1px solid var(--text-color);
+  border-bottom: 1px solid var(--text-color);
 }
 
 #display {
@@ -40,7 +49,7 @@ body {
 }
 
 .ending-soon {
-  color: #dc3545 !important;
+  color: var(--ending-soon-color) !important;
   animation: blink 1s ease-in-out infinite;
 }
 
@@ -57,8 +66,60 @@ body {
   margin-right: 5px;
 }
 
+/* Settings Button Styles */
+.settings-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--text-color);
+  opacity: 0.7;
+  transition: opacity 0.3s;
+  z-index: 1000;
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.settings-btn:hover {
+  opacity: 1;
+  color: var(--text-color);
+}
+
+.settings-btn:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+/* Control buttons styling */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn svg {
+  margin-right: 0.25rem;
+}
+
+/* Increment/decrement buttons */
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.btn-sm svg {
+  margin-right: 0;
+}
+
+/* Media queries */
 @media (max-width: 480px) {
   #display { font-size: 4rem; }
+  .settings-btn { font-size: 1.2rem; }
 }
 
 @media screen and (max-width: 768px) {

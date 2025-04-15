@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
+import { PlayFill, StopFill, ArrowCounterclockwise, DashLg, PlusLg } from 'react-bootstrap-icons';
 import './Timer.css';
 import { loadFromLocalStorage, saveToLocalStorage } from './utils/storage';
+import Settings from './components/Settings';
 
 const SECOND = 1000;
 const UPDATES_PER_SECOND = 5;
@@ -51,6 +53,17 @@ const Timer = () => {
         // Update current time every minute
         const interval = setInterval(() => setCurrentTime(new Date()), 10000);
         setCurrentTime(new Date()); // set initial
+
+        // Load color settings on startup
+        const colorSettings = loadFromLocalStorage('colorSettings', null);
+        if (colorSettings) {
+            document.documentElement.style.setProperty('--background-color', colorSettings.backgroundColor);
+            document.documentElement.style.setProperty('--text-color', colorSettings.textColor);
+            document.documentElement.style.setProperty('--current-time-color', colorSettings.currentTimeColor);
+            document.documentElement.style.setProperty('--rest-phase-color', colorSettings.restPhaseColor);
+            document.documentElement.style.setProperty('--ending-soon-color', colorSettings.endingSoonColor);
+        }
+
         return () => clearInterval(interval);
     }, []);
 
@@ -207,6 +220,7 @@ const Timer = () => {
 
     return (
         <Container id="timer" className={isRestTime || isReadyStage ? 'rest-phase' : 'round-phase'}>
+            <Settings />
             <Row className="justify-content-center my-0">
                 <Col md="auto">
                     <div className="current-time">
@@ -232,26 +246,28 @@ const Timer = () => {
                 <Col xs={12} md={6}>
                     <div className="d-flex justify-content-between">
                         <div>
-                            <label>Round:</label>
-                            <Button variant="secondary" size="me" onClick={() => changeRoundTime(-30)}>-</Button>
-                            <span className="mx-1">{formatTime(roundTime)}</span>
-                            <Button variant="secondary" size="me" onClick={() => changeRoundTime(30)}>+</Button>
+                            <label className="me-2">Round:</label>
+                            <Button variant="secondary" size="sm" onClick={() => changeRoundTime(-30)} className="d-inline-flex align-items-center"><DashLg /></Button>
+                            <span className="mx-2">{formatTime(roundTime)}</span>
+                            <Button variant="secondary" size="sm" onClick={() => changeRoundTime(30)} className="d-inline-flex align-items-center"><PlusLg /></Button>
                         </div>
                         <div>
-                            <label>Rest:</label>
-                            <Button variant="secondary" size="me" onClick={() => changeRestTime(-10)}>-</Button>
-                            <span className="mx-1">{formatTime(restTime)}</span>
-                            <Button variant="secondary" size="me" onClick={() => changeRestTime(10)}>+</Button>
+                            <label className="me-2">Rest:</label>
+                            <Button variant="secondary" size="sm" onClick={() => changeRestTime(-10)} className="d-inline-flex align-items-center"><DashLg /></Button>
+                            <span className="mx-2">{formatTime(restTime)}</span>
+                            <Button variant="secondary" size="sm" onClick={() => changeRestTime(10)} className="d-inline-flex align-items-center"><PlusLg /></Button>
                         </div>
                     </div>
                 </Col>
                 <Col xs={12} md={6} className="d-flex justify-content-center mt-3 mt-md-0">
                     <div>
-                        <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer}>
-                            {running ? 'Stop' : 'Start'}
+                        <Button variant={running ? 'danger' : 'success'} onClick={toggleTimer} className="d-flex align-items-center">
+                            {running ? <><StopFill className="me-1" /> Stop</> : <><PlayFill className="me-1" /> Start</>}
                         </Button>
                         &nbsp;
-                        <Button variant="dark" onClick={resetTimer}>Reset</Button>
+                        <Button variant="dark" onClick={resetTimer} className="d-flex align-items-center">
+                            <ArrowCounterclockwise className="me-1" /> Reset
+                        </Button>
                     </div>
                 </Col>
             </Row>
