@@ -168,8 +168,9 @@ const Timer = () => {
         }, [delay]);
     }
 
-    // Use the custom useInterval hook
-    useInterval(running ? tick : null, RENDER_RATE);
+    // Use the custom useInterval hook to call tick at the render rate when running
+    // Pass the delay as null when not running to avoid scheduling the interval
+    useInterval(tick, running ? RENDER_RATE : null);
 
     const toggleTimer = () => {
         initializeAudio();
