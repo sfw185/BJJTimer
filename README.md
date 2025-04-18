@@ -28,10 +28,10 @@ BJJTimer is a React-based web application designed for Brazilian Jiu-Jitsu pract
 
 ### Technology Stack
 
-- **Frontend Framework**: React 18.2.0
-- **UI Components**: React Bootstrap 2.9.1
-- **Build Tool**: Vite 5.0.0
-- **PWA Support**: vite-plugin-pwa 0.20.1
+- **Frontend Framework**: React
+- **UI Components**: React Bootstrap
+- **Build Tool**: Vite
+- **PWA Support**: vite-plugin-pwa
 
 ## Development
 
