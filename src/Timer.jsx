@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
-import { PlayFill, StopFill, ArrowCounterclockwise, DashLg, PlusLg } from 'react-bootstrap-icons';
+import { PlayFill, StopFill, ArrowCounterclockwise, DashLg, PlusLg, Infinity } from 'react-bootstrap-icons';
 import './Timer.css';
 import { loadFromLocalStorage, saveToLocalStorage } from './utils/storage';
 import Settings from './components/Settings';
@@ -17,6 +17,7 @@ const Timer = () => {
     const [roundTime, setRoundTime] = useState(loadFromLocalStorage('roundTime', 5 * 60 * SECOND));
     const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
     const [currentRound, setCurrentRound] = useState(0);
+    const [totalRounds, setTotalRounds] = useState(loadFromLocalStorage('totalRounds', 0));
     const [isRestTime, setIsRestTime] = useState(false);
     const [isReadyStage, setIsReadyStage] = useState(false);
     const [running, setRunning] = useState(false);
@@ -134,10 +135,20 @@ const Timer = () => {
             } else if (isRestTime) {
                 startRound();
             } else {
-                startRest();
+                // Check if we've reached the total number of rounds
+                if (totalRounds > 0 && currentRound >= totalRounds) {
+                    // Stop the timer and reset state after the last round
+                    setRunning(false);
+                    finishSound.current.play();
+                    setIsRestTime(false);
+                    setIsReadyStage(false);
+                    setTimeLeft(roundTime);
+                } else {
+                    startRest();
+                }
             }
         }
-    }, [running, isRestTime, isReadyStage, restTime, roundTime, startRound, startRest]);
+    }, [running, isRestTime, isReadyStage, restTime, roundTime, totalRounds, currentRound, startRound, startRest]);
 
     // Custom hook to handle intervals with the latest state
     function useInterval(callback, delay) {
@@ -181,6 +192,13 @@ const Timer = () => {
         setIsRestTime(false);
         setIsReadyStage(false);
         setTimeLeft(roundTime);
+    };
+
+    const changeTotalRounds = (amount) => {
+        // Ensure totalRounds doesn't go below 0
+        const newValue = Math.max(0, totalRounds + amount);
+        setTotalRounds(newValue);
+        saveToLocalStorage('totalRounds', newValue);
     };
 
     const changeRoundTime = (amount) => {
@@ -246,7 +264,7 @@ const Timer = () => {
                 <Col xs={12} lg={10} xl={8} className="mx-auto">
                     <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-4">
                         <div className="timer-control-group">
-                            <label className="me-2">Round:</label>
+                            <label className="me-2">Duration:</label>
                             <Button variant="secondary" size="sm" onClick={() => changeRoundTime(-30)} className="d-inline-flex align-items-center"><DashLg /></Button>
                             <span className="mx-2">{formatTime(roundTime)}</span>
                             <Button variant="secondary" size="sm" onClick={() => changeRoundTime(30)} className="d-inline-flex align-items-center"><PlusLg /></Button>
@@ -256,6 +274,12 @@ const Timer = () => {
                             <Button variant="secondary" size="sm" onClick={() => changeRestTime(-10)} className="d-inline-flex align-items-center"><DashLg /></Button>
                             <span className="mx-2">{formatTime(restTime)}</span>
                             <Button variant="secondary" size="sm" onClick={() => changeRestTime(10)} className="d-inline-flex align-items-center"><PlusLg /></Button>
+                        </div>
+                        <div className="timer-control-group">
+                            <label className="me-2">Rounds:</label>
+                            <Button variant="secondary" size="sm" onClick={() => changeTotalRounds(-1)} className="d-inline-flex align-items-center"><DashLg /></Button>
+                            <span className="mx-2">{totalRounds === 0 ? <Infinity /> : totalRounds}</span>
+                            <Button variant="secondary" size="sm" onClick={() => changeTotalRounds(1)} className="d-inline-flex align-items-center"><PlusLg /></Button>
                         </div>
                     </div>
                     <div className="d-flex justify-content-center mt-4">
