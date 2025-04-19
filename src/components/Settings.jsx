@@ -198,6 +198,13 @@ const Settings = () => {
                 Reset to Defaults
               </Button>
             </div>
+            
+            <hr className="my-4" />
+            
+            <div className="mt-3 d-flex justify-content-between">
+              <a href="https://github.com/sfw185/BJJTimer" target="_blank" rel="noopener noreferrer" className="text-muted small">View on GitHub</a>
+              <a href="mailto:simon@wardan.com?subject=BJJ%20Timer%20Feedback" className="text-muted small">Send Feedback</a>
+            </div>
           </Form>
         </Offcanvas.Body>
       </Offcanvas>
