@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
-import { PlayFill, StopFill, ArrowCounterclockwise, DashLg, PlusLg, Infinity } from 'react-bootstrap-icons';
+import { PlayFill, StopFill, ArrowCounterclockwise, DashLg, PlusLg, Infinity, ClockFill } from 'react-bootstrap-icons';
 import './Timer.css';
 import { loadFromLocalStorage, saveToLocalStorage } from './utils/storage';
 import Settings from './components/Settings';
@@ -14,6 +14,7 @@ const SOON_TIME = 10 * SECOND;
 
 const Timer = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [finishTime, setFinishTime] = useState(null);
     const [roundTime, setRoundTime] = useState(loadFromLocalStorage('roundTime', 5 * 60 * SECOND));
     const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
     const [currentRound, setCurrentRound] = useState(0);
@@ -25,6 +26,7 @@ const Timer = () => {
 
     // Use refs for mutable variables that don't trigger re-renders
     const startTime = useRef(null);
+    const sessionStartTime = useRef(null);
     const soonSoundPlayed = useRef(false);
     const readySoundPlayed = useRef(false);
 
@@ -50,10 +52,19 @@ const Timer = () => {
         }
     };
 
+    // This effect runs only once at component mount to set up timers and initial state
     useEffect(() => {
         // Update current time every minute
-        const interval = setInterval(() => setCurrentTime(new Date()), 10000);
+        const interval = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 10000);
         setCurrentTime(new Date()); // set initial
+        
+        // Initial calculation of finish time on component mount
+        if (totalRounds > 0) {
+            // Use setTimeout to ensure this runs after the component is fully initialized
+            setTimeout(() => calculateFinishTime(), 0);
+        }
 
         // Load color settings on startup
         const colorSettings = loadFromLocalStorage('colorSettings', null);
@@ -68,6 +79,62 @@ const Timer = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Calculate finish time based on total rounds, round time, and rest time
+    const calculateFinishTime = useCallback(() => {
+        if (totalRounds <= 0) {
+            setFinishTime(null);
+            return;
+        }
+
+        const now = new Date();
+        let totalTimeMs = 0;
+
+        // If in ready stage, add ready time
+        if (isReadyStage) {
+            totalTimeMs += timeLeft;
+            // After ready stage, we still need to count full rounds
+            totalTimeMs += totalRounds * roundTime;
+            // Add rest periods between rounds (one fewer rest than rounds)
+            if (totalRounds > 1) {
+                totalTimeMs += (totalRounds - 1) * restTime;
+            }
+        } else {
+            // Calculate remaining time in current round/rest
+            totalTimeMs += timeLeft;
+
+            // Calculate time for remaining rounds
+            let remainingFullRounds;
+
+            if (isRestTime) {
+                // If in rest time, current round is already complete
+                remainingFullRounds = totalRounds - currentRound;
+            } else {
+                // If in active round, need to include current round in remaining
+                remainingFullRounds = totalRounds - (currentRound - 1);
+            }
+
+            if (remainingFullRounds > 0) {
+                if (!isRestTime) {
+                    // If in round, subtract current round's remaining time (already counted)
+                    remainingFullRounds--;
+                }
+
+                // Add time for remaining full rounds
+                totalTimeMs += remainingFullRounds * roundTime;
+
+                // Add rest periods between rounds
+                if (remainingFullRounds > 0) {
+                    // If we're in rest, we need one fewer rest period
+                    const restPeriods = isRestTime ? Math.max(0, remainingFullRounds - 1) : remainingFullRounds;
+                    totalTimeMs += restPeriods * restTime;
+                }
+            }
+        }
+
+        // Create new date by adding the total milliseconds
+        const estimatedFinish = new Date(now.getTime() + totalTimeMs);
+        setFinishTime(estimatedFinish);
+    }, [totalRounds, running, timeLeft, currentRound, roundTime, restTime, isRestTime, isReadyStage]);
 
     // Start a new round
     const startRound = useCallback(() => {
@@ -132,23 +199,36 @@ const Timer = () => {
         if (difference <= 0) {
             if (isReadyStage) {
                 startRound();
+                // Recalculate finish time after ready stage
+                if (totalRounds > 0) {
+                    calculateFinishTime();
+                }
             } else if (isRestTime) {
                 startRound();
+                // Recalculate finish time after rest period
+                if (totalRounds > 0) {
+                    calculateFinishTime();
+                }
             } else {
                 // Check if we've reached the total number of rounds
                 if (totalRounds > 0 && currentRound >= totalRounds) {
-                    // Stop the timer and reset state after the last round
-                    setRunning(false);
-                    finishSound.current.play();
-                    setIsRestTime(false);
-                    setIsReadyStage(false);
-                    setTimeLeft(roundTime);
+                // Stop the timer and reset state after the last round
+                setRunning(false);
+                finishSound.current.play();
+                setIsRestTime(false);
+                setIsReadyStage(false);
+                setTimeLeft(roundTime);
+                // Keep finish time for reference
                 } else {
                     startRest();
+                    // Recalculate finish time after round ends
+                    if (totalRounds > 0) {
+                        calculateFinishTime();
+                    }
                 }
             }
         }
-    }, [running, isRestTime, isReadyStage, restTime, roundTime, totalRounds, currentRound, startRound, startRest]);
+    }, [running, isRestTime, isReadyStage, restTime, roundTime, totalRounds, currentRound, startRound, startRest, calculateFinishTime]);
 
     // Custom hook to handle intervals with the latest state
     function useInterval(callback, delay) {
@@ -182,8 +262,11 @@ const Timer = () => {
                 startRound();
             }
             setRunning(true);
+            sessionStartTime.current = Date.now();
+            calculateFinishTime();
         } else {
             setRunning(false);
+            // Don't clear finish time when stopping
         }
     };
 
@@ -193,6 +276,14 @@ const Timer = () => {
         setIsRestTime(false);
         setIsReadyStage(false);
         setTimeLeft(roundTime);
+        sessionStartTime.current = null;
+        
+        // Recalculate finish time instead of setting to null
+        if (totalRounds > 0) {
+            calculateFinishTime();
+        } else {
+            setFinishTime(null);
+        }
     };
 
     const changeTotalRounds = (amount) => {
@@ -200,6 +291,13 @@ const Timer = () => {
         const newValue = Math.max(0, totalRounds + amount);
         setTotalRounds(newValue);
         saveToLocalStorage('totalRounds', newValue);
+        
+        // Always recalculate finish time if rounds > 0, regardless of running state
+        if (newValue > 0) {
+            calculateFinishTime();
+        } else if (newValue === 0) {
+            setFinishTime(null);
+        }
     };
 
     const changeRoundTime = (amount) => {
@@ -208,6 +306,11 @@ const Timer = () => {
         saveToLocalStorage('roundTime', newTime);
         if (!running && !isRestTime) {
             setTimeLeft(newTime);
+        }
+        
+        // Always recalculate finish time when round time changes
+        if (totalRounds > 0) {
+            calculateFinishTime();
         }
     };
 
@@ -218,6 +321,11 @@ const Timer = () => {
         if (!running && isRestTime) {
             setTimeLeft(newTime);
         }
+        
+        // Always recalculate finish time when rest time changes
+        if (totalRounds > 0) {
+            calculateFinishTime();
+        }
     };
 
     const formatTime = (time) => {
@@ -227,6 +335,8 @@ const Timer = () => {
     };
 
     const formatCurrentTime = (date) => {
+        if (!date) return '';
+
         let hours = date.getHours();
         let minutes = date.getMinutes();
         const ampm = hours >= 12 ? 'pm' : 'am';
@@ -236,6 +346,20 @@ const Timer = () => {
 
         return `${hours}:${minutes} ${ampm}`;
     };
+
+    // Recalculate finish time when relevant values change
+    useEffect(() => {
+        if (totalRounds > 0) {
+            calculateFinishTime();
+        }
+    }, [calculateFinishTime, running, currentRound, isRestTime, totalRounds, roundTime, restTime]);
+    
+    // Recalculate finish time when current time changes (even if paused)
+    useEffect(() => {
+        if (totalRounds > 0) {
+            calculateFinishTime();
+        }
+    }, [currentTime, calculateFinishTime, totalRounds]);
 
     return (
         <Container fluid id="timer" className={isRestTime || isReadyStage ? 'rest-phase' : 'round-phase'}>
@@ -291,6 +415,13 @@ const Timer = () => {
                             <ArrowCounterclockwise className="me-1" /> Reset
                         </Button>
                     </div>
+                    {finishTime && totalRounds > 0 && (
+                        <div className="finish-time-container mt-3">
+                            <ClockFill className="me-1" size={14} />
+                            <span className="finish-time-label">Finish at:</span>
+                            <span className="finish-time">{formatCurrentTime(finishTime)}</span>
+                        </div>
+                    )}
                 </Col>
             </Row>
         </Container>
