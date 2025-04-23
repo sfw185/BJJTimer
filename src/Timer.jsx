@@ -59,7 +59,7 @@ const Timer = () => {
             setCurrentTime(new Date());
         }, 10000);
         setCurrentTime(new Date()); // set initial
-        
+
         // Initial calculation of finish time on component mount
         if (totalRounds > 0) {
             // Use setTimeout to ensure this runs after the component is fully initialized
@@ -81,60 +81,58 @@ const Timer = () => {
 
     // Calculate finish time based on total rounds, round time, and rest time
     const calculateFinishTime = useCallback(() => {
+        // If totalRounds is 0 (infinite mode), there's no defined finish time.
         if (totalRounds <= 0) {
             setFinishTime(null);
             return;
         }
 
         const now = new Date();
-        let totalTimeMs = 0;
+        // Start accumulating total remaining time with the time left in the *current* phase.
+        // Note: 'timeLeft' might be stale if paused, but adding to 'now' keeps the estimate correct relative to wall-clock time.
+        let totalTimeMs = timeLeft;
 
-        // If in ready stage, add ready time
+        let remainingFullRounds = 0; // Full rounds yet to start
+        let remainingRestPeriods = 0; // Full rest periods yet to start
+
         if (isReadyStage) {
-            totalTimeMs += timeLeft;
-            // After ready stage, we still need to count full rounds
-            totalTimeMs += totalRounds * roundTime;
-            // Add rest periods between rounds (one fewer rest than rounds)
-            if (totalRounds > 1) {
-                totalTimeMs += (totalRounds - 1) * restTime;
-            }
+            // If in the initial 'Ready' stage, all rounds and rests are yet to come.
+            remainingFullRounds = totalRounds;
+            // There's one less rest period than the total number of rounds.
+            remainingRestPeriods = Math.max(0, totalRounds - 1);
+
+        } else if (isRestTime) {
+            // If currently in a rest period, 'currentRound' rounds have been fully completed.
+            // Calculate the number of full rounds remaining AFTER this rest period finishes.
+            remainingFullRounds = totalRounds - currentRound;
+            // Rests happen between these future rounds. If N rounds remain, N-1 rests remain.
+            remainingRestPeriods = Math.max(0, remainingFullRounds - 1);
+
         } else {
-            // Calculate remaining time in current round/rest
-            totalTimeMs += timeLeft;
-
-            // Calculate time for remaining rounds
-            let remainingFullRounds;
-
-            if (isRestTime) {
-                // If in rest time, current round is already complete
-                remainingFullRounds = totalRounds - currentRound;
-            } else {
-                // If in active round, need to include current round in remaining
-                remainingFullRounds = totalRounds - (currentRound - 1);
-            }
-
-            if (remainingFullRounds > 0) {
-                if (!isRestTime) {
-                    // If in round, subtract current round's remaining time (already counted)
-                    remainingFullRounds--;
-                }
-
-                // Add time for remaining full rounds
-                totalTimeMs += remainingFullRounds * roundTime;
-
-                // Add rest periods between rounds
-                if (remainingFullRounds > 0) {
-                    // If we're in rest, we need one fewer rest period
-                    const restPeriods = isRestTime ? Math.max(0, remainingFullRounds - 1) : remainingFullRounds;
-                    totalTimeMs += restPeriods * restTime;
-                }
-            }
+            // If currently in an active work round ('currentRound' is in progress).
+            // Calculate the number of full rounds remaining AFTER this current round finishes.
+            remainingFullRounds = totalRounds - currentRound;
+            // Calculate the number of full rest periods remaining:
+            // one rest follows each upcoming round except the last one.
+            remainingRestPeriods = Math.max(0, remainingFullRounds - 1);
         }
 
-        // Create new date by adding the total milliseconds
+        // Add the total duration for all remaining full rounds.
+        if (remainingFullRounds > 0) {
+            totalTimeMs += remainingFullRounds * roundTime;
+        }
+
+        // Add the total duration for all remaining full rest periods.
+        if (remainingRestPeriods > 0) {
+            totalTimeMs += remainingRestPeriods * restTime;
+        }
+
+        // Calculate the final estimated finish time by adding the total remaining duration to the current time.
         const estimatedFinish = new Date(now.getTime() + totalTimeMs);
         setFinishTime(estimatedFinish);
-    }, [totalRounds, running, timeLeft, currentRound, roundTime, restTime, isRestTime, isReadyStage]);
+
+    }, [totalRounds, timeLeft, currentRound, roundTime, restTime, isRestTime, isReadyStage]); // Dependencies based on values used in calculation
+
 
     // Start a new round
     const startRound = useCallback(() => {
@@ -184,6 +182,11 @@ const Timer = () => {
         const difference = totalTime - (updatedTime - startTime.current);
         setTimeLeft(difference <= 0 ? 0 : difference);
 
+        // Always recalculate finish time on each tick when running
+        if (totalRounds > 0) {
+            calculateFinishTime();
+        }
+
         // Play "ready" sound before round starts when in rest mode
         if (difference <= READY_TIME && difference > (READY_TIME - RENDER_RATE) && isRestTime && !isReadyStage && !readySoundPlayed.current) {
             readySound.current.play();
@@ -199,16 +202,8 @@ const Timer = () => {
         if (difference <= 0) {
             if (isReadyStage) {
                 startRound();
-                // Recalculate finish time after ready stage
-                if (totalRounds > 0) {
-                    calculateFinishTime();
-                }
             } else if (isRestTime) {
                 startRound();
-                // Recalculate finish time after rest period
-                if (totalRounds > 0) {
-                    calculateFinishTime();
-                }
             } else {
                 // Check if we've reached the total number of rounds
                 if (totalRounds > 0 && currentRound >= totalRounds) {
@@ -218,13 +213,8 @@ const Timer = () => {
                 setIsRestTime(false);
                 setIsReadyStage(false);
                 setTimeLeft(roundTime);
-                // Keep finish time for reference
                 } else {
                     startRest();
-                    // Recalculate finish time after round ends
-                    if (totalRounds > 0) {
-                        calculateFinishTime();
-                    }
                 }
             }
         }
@@ -277,7 +267,7 @@ const Timer = () => {
         setIsReadyStage(false);
         setTimeLeft(roundTime);
         sessionStartTime.current = null;
-        
+
         // Recalculate finish time instead of setting to null
         if (totalRounds > 0) {
             calculateFinishTime();
@@ -291,7 +281,7 @@ const Timer = () => {
         const newValue = Math.max(0, totalRounds + amount);
         setTotalRounds(newValue);
         saveToLocalStorage('totalRounds', newValue);
-        
+
         // Always recalculate finish time if rounds > 0, regardless of running state
         if (newValue > 0) {
             calculateFinishTime();
@@ -307,7 +297,7 @@ const Timer = () => {
         if (!running && !isRestTime) {
             setTimeLeft(newTime);
         }
-        
+
         // Always recalculate finish time when round time changes
         if (totalRounds > 0) {
             calculateFinishTime();
@@ -321,7 +311,7 @@ const Timer = () => {
         if (!running && isRestTime) {
             setTimeLeft(newTime);
         }
-        
+
         // Always recalculate finish time when rest time changes
         if (totalRounds > 0) {
             calculateFinishTime();
@@ -353,13 +343,14 @@ const Timer = () => {
             calculateFinishTime();
         }
     }, [calculateFinishTime, running, currentRound, isRestTime, totalRounds, roundTime, restTime]);
-    
-    // Recalculate finish time when current time changes (even if paused)
+
+    // Update finish time when current time changes (even if timer is paused)
     useEffect(() => {
-        if (totalRounds > 0) {
+        // This ensures the finish time is updated even when the timer is paused
+        if (totalRounds > 0 && !running) {
             calculateFinishTime();
         }
-    }, [currentTime, calculateFinishTime, totalRounds]);
+    }, [currentTime, calculateFinishTime, totalRounds, running]);
 
     return (
         <Container fluid id="timer" className={isRestTime || isReadyStage ? 'rest-phase' : 'round-phase'}>
