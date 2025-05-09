@@ -205,12 +205,8 @@ const Timer = () => {
                 startRound();
             } else { // Work round finished
                 if (totalRounds > 0 && currentRound >= totalRounds) {
-                    setRunning(false);
                     finishSound.current.play();
-                    setIsRestTime(false); // Reset state
-                    setIsReadyStage(false);
-                    setTimeLeft(roundTime); // Reset timeLeft for next potential start
-                    // currentRound remains at totalRounds, indicating completion
+                    resetTimer(); // Trigger reset when the last round finishes
                 } else {
                     startRest();
                 }
