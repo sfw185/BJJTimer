@@ -17,16 +17,16 @@ const Timer = () => {
     const [finishTime, setFinishTime] = useState(null);
     const [roundTime, setRoundTime] = useState(loadFromLocalStorage('roundTime', 5 * 60 * SECOND));
     const [restTime, setRestTime] = useState(loadFromLocalStorage('restTime', 20 * SECOND));
-    const [currentRound, setCurrentRound] = useState(0);
-    const [totalRounds, setTotalRounds] = useState(loadFromLocalStorage('totalRounds', 0));
+    const [currentRound, setCurrentRound] = useState(0); // 0 means not started or reset
+    const [totalRounds, setTotalRounds] = useState(loadFromLocalStorage('totalRounds', 0)); // 0 for infinite
     const [isRestTime, setIsRestTime] = useState(false);
     const [isReadyStage, setIsReadyStage] = useState(false);
     const [running, setRunning] = useState(false);
     const [timeLeft, setTimeLeft] = useState(roundTime);
 
-    const startTime = useRef(null);
-    // sessionStartTime is not used in the provided logic for finish time, but kept for other potential uses
-    const sessionStartTime = useRef(null);
+    const startTime = useRef(null); // Start time of the current phase
+    const sessionStartTime = useRef(null); // Not used for ETA, but kept
+
     const soonSoundPlayed = useRef(false);
     const readySoundPlayed = useRef(false);
 
@@ -35,25 +35,34 @@ const Timer = () => {
     const readySound = useRef(null);
     const finishSound = useRef(null);
 
-    const initializeAudio = () => {
+    const initializeAudio = useCallback(() => {
         if (!startSound.current) {
-            startSound.current = new Audio('go.mp3');
-            soonSound.current = new Audio('soon.mp3');
-            readySound.current = new Audio('ready.mp3');
-            finishSound.current = new Audio('finish.mp3');
-            startSound.current.load();
-            soonSound.current.load();
-            readySound.current.load();
-            finishSound.current.load();
+            try {
+                startSound.current = new Audio('go.mp3');
+                soonSound.current = new Audio('soon.mp3');
+                readySound.current = new Audio('ready.mp3');
+                finishSound.current = new Audio('finish.mp3');
+                // Preload audio
+                startSound.current.load();
+                soonSound.current.load();
+                readySound.current.load();
+                finishSound.current.load();
+            } catch (error) {
+                console.error("Error initializing audio:", error);
+                // Fallback or disable audio if there's an error (e.g., in environments without Audio)
+                startSound.current = { play: () => {}, load: () => {} };
+                soonSound.current = { play: () => {}, load: () => {} };
+                readySound.current = { play: () => {}, load: () => {} };
+                finishSound.current = { play: () => {}, load: () => {} };
+            }
         }
-    };
+    }, []);
 
-    // Effect for updating current time and loading initial settings (colors)
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTime(new Date());
-        }, 10000); // Updates current time display every 10 seconds
-        setCurrentTime(new Date()); // Set initial current time
+        }, 10000);
+        setCurrentTime(new Date());
 
         const colorSettings = loadFromLocalStorage('colorSettings', null);
         if (colorSettings) {
@@ -63,54 +72,67 @@ const Timer = () => {
             document.documentElement.style.setProperty('--rest-phase-color', colorSettings.restPhaseColor);
             document.documentElement.style.setProperty('--ending-soon-color', colorSettings.endingSoonColor);
         }
+        initializeAudio(); // Initialize audio once on mount
 
         return () => clearInterval(interval);
-    }, []); // Runs only once on component mount
+    }, [initializeAudio]);
 
-    // Recalculate finish time based on current state
     const calculateFinishTime = useCallback(() => {
-        if (totalRounds <= 0) {
+        if (totalRounds <= 0) { // Infinite rounds means no specific finish time
             setFinishTime(null);
             return;
         }
 
         const now = new Date();
-        let futureMillis = timeLeft; // Start with time remaining in the current phase
+        let futureMillis = 0;
 
-        if (isReadyStage) {
-            // After the current 'Ready' phase (whose remainder is in timeLeft):
-            // Add all work rounds
-            futureMillis += totalRounds * roundTime;
-            // Add all rest periods between these rounds
+        // Case 1: Timer is idle (reset, or before first ever start)
+        if (currentRound === 0 && !isReadyStage && !isRestTime) {
+            futureMillis = READY_TIME; // Starts with a ready stage
+            futureMillis += totalRounds * roundTime; // Total time for all work rounds
             if (totalRounds > 1) {
-                futureMillis += (totalRounds - 1) * restTime;
+                futureMillis += (totalRounds - 1) * restTime; // Total time for rests between rounds
             }
-        } else if (isRestTime) {
-            // Currently in a rest period. 'timeLeft' is for this current rest.
-            // 'currentRound' has just finished.
-            // Rounds remaining to START after this rest finishes:
+        }
+        // Case 2: Timer is in the 'Get Ready' stage
+        else if (isReadyStage) {
+            futureMillis = timeLeft; // Remaining time in current 'Get Ready' stage
+            futureMillis += totalRounds * roundTime; // Add all work rounds
+            if (totalRounds > 1) {
+                futureMillis += (totalRounds - 1) * restTime; // Add all rest periods between these work rounds
+            }
+        }
+        // Case 3: Timer is in a Rest period
+        else if (isRestTime) {
+            futureMillis = timeLeft; // Remaining time in current Rest period
+            // 'currentRound' indicates the round that has just finished
             const roundsYetToStartAfterThisRest = totalRounds - currentRound;
             if (roundsYetToStartAfterThisRest > 0) {
                 futureMillis += roundsYetToStartAfterThisRest * roundTime; // Work time for these future rounds
-                // Rest periods BETWEEN these future rounds:
+                // Rest periods BETWEEN these future work rounds:
                 if (roundsYetToStartAfterThisRest > 1) {
                     futureMillis += (roundsYetToStartAfterThisRest - 1) * restTime;
                 }
             }
-        } else { // Currently in an active work round
-            // 'timeLeft' is for the current work round ('currentRound').
-            // Full work rounds remaining AFTER this current one finishes:
-            const fullRoundsAfterCurrentWork = totalRounds - currentRound;
+        }
+        // Case 4: Timer is in an active Work round
+        else { // Implies: !isReadyStage && !isRestTime && currentRound > 0
+            futureMillis = timeLeft; // Remaining time in current Work round
+            // 'currentRound' is the currently active round (1-indexed)
+            const fullWorkRoundsRemainingAfterCurrent = totalRounds - currentRound;
 
-            if (fullRoundsAfterCurrentWork > 0) {
+            if (fullWorkRoundsRemainingAfterCurrent > 0) {
                 // Add time for these full future work rounds
-                futureMillis += fullRoundsAfterCurrentWork * roundTime;
-                // Add time for all rests that will occur from after the current round until the end:
-                // This includes the rest immediately after the current work round (if not the last overall)
-                // and rests between subsequent work rounds. Total is 'fullRoundsAfterCurrentWork' rests.
-                futureMillis += fullRoundsAfterCurrentWork * restTime;
+                futureMillis += fullWorkRoundsRemainingAfterCurrent * roundTime;
+                // Add time for rests that will occur *after* the current round and *between* subsequent rounds.
+                // Each of these future work rounds will be followed by a rest,
+                // except there's no rest after the very final work round of the session.
+                // So, number of rests = fullWorkRoundsRemainingAfterCurrent.
+                futureMillis += fullWorkRoundsRemainingAfterCurrent * restTime;
             }
         }
+
+        if (futureMillis < 0) futureMillis = 0; // Precaution
 
         const estimatedFinish = new Date(now.getTime() + futureMillis);
         setFinishTime(estimatedFinish);
@@ -128,49 +150,60 @@ const Timer = () => {
 
     // Effect to update finish time when timer is paused (due to passage of real time)
     useEffect(() => {
-        if (totalRounds > 0 && !running) {
+        if (totalRounds > 0 && !running && finishTime) { // Only if finishTime was already set
             calculateFinishTime();
         }
-    }, [currentTime, running, totalRounds, calculateFinishTime]);
+    }, [currentTime, running, totalRounds, calculateFinishTime, finishTime]);
 
 
     const startRound = useCallback(() => {
-        initializeAudio();
-        startSound.current.play();
+        startSound.current?.play().catch(e => console.error("Error playing start sound:", e));
         startTime.current = Date.now();
         setIsRestTime(false);
         setIsReadyStage(false);
-        setCurrentRound(prevRound => prevRound + 1);
-        setTimeLeft(roundTime); // Set timeLeft for the new round
+        setCurrentRound(prevRound => prevRound + 1); // Increment for the new round
+        setTimeLeft(roundTime);
         readySoundPlayed.current = false;
         soonSoundPlayed.current = false;
-    }, [roundTime]); // Added roundTime dependency for setTimeLeft
+    }, [roundTime, startSound]);
 
     const startReadyStage = useCallback(() => {
-        initializeAudio();
-        readySound.current.play();
+        readySound.current?.play().catch(e => console.error("Error playing ready sound:", e));
         startTime.current = Date.now();
         setIsReadyStage(true);
-        setIsRestTime(false); // Ensure not in rest time
-        setCurrentRound(0);   // Reset current round for ready stage
-        setTimeLeft(READY_TIME); // Set timeLeft for the ready stage
-        readySoundPlayed.current = true;
+        setIsRestTime(false);
+        setCurrentRound(0); // In ready stage, effectively before round 1
+        setTimeLeft(READY_TIME);
+        readySoundPlayed.current = true; // The main "ready" sound for the stage itself
         soonSoundPlayed.current = false;
-    }, []);
+    }, [readySound]);
 
     const startRest = useCallback(() => {
-        initializeAudio(); // Ensure audio is initialized
-        finishSound.current.play();
+        finishSound.current?.play().catch(e => console.error("Error playing finish sound:", e));
         startTime.current = Date.now();
         setIsRestTime(true);
-        setIsReadyStage(false); // Ensure not in ready stage
-        setTimeLeft(restTime); // Set timeLeft for the rest period
+        setIsReadyStage(false);
+        setTimeLeft(restTime);
+        // currentRound remains the number of the round just completed
+        readySoundPlayed.current = false; // Reset for the "ready" sound at end of rest
+        soonSoundPlayed.current = false;
+    }, [restTime, finishSound]);
+
+    const resetTimer = useCallback(() => {
+        setRunning(false);
+        setCurrentRound(0); // Key indicator for idle/reset state
+        setIsRestTime(false);
+        setIsReadyStage(false);
+        setTimeLeft(roundTime); // Display upcoming round time; calculateFinishTime handles ETA from scratch
+        sessionStartTime.current = null;
         readySoundPlayed.current = false;
         soonSoundPlayed.current = false;
-    }, [restTime]); // Added restTime dependency for setTimeLeft
+        // calculateFinishTime will be triggered by state changes via useEffect
+    }, [roundTime]);
+
 
     const tick = useCallback(() => {
-        if (!running) return;
+        if (!running || !startTime.current) return;
 
         const updatedTime = Date.now();
         let currentPhaseTotalTime;
@@ -186,33 +219,34 @@ const Timer = () => {
         const newTimeLeft = currentPhaseTotalTime - elapsedTimeInPhase;
         setTimeLeft(newTimeLeft <= 0 ? 0 : newTimeLeft);
 
-        // Play "ready" sound before round starts when in rest mode
-        if (newTimeLeft <= READY_TIME && newTimeLeft > (READY_TIME - RENDER_RATE) && isRestTime && !isReadyStage && !readySoundPlayed.current) {
-            readySound.current.play();
+        // Play "ready" sound towards the end of a rest period
+        if (isRestTime && !isReadyStage && newTimeLeft <= READY_TIME && newTimeLeft > (READY_TIME - RENDER_RATE) && !readySoundPlayed.current) {
+            readySound.current?.play().catch(e => console.error("Error playing ready sound (in rest):", e));
             readySoundPlayed.current = true;
         }
 
-        // Play "soon" sound before round ends
-        if (newTimeLeft <= SOON_TIME && newTimeLeft > (SOON_TIME - RENDER_RATE) && !isRestTime && !isReadyStage && !soonSoundPlayed.current) {
-            soonSound.current.play();
+        // Play "soon" sound towards the end of a work round
+        if (!isRestTime && !isReadyStage && newTimeLeft <= SOON_TIME && newTimeLeft > (SOON_TIME - RENDER_RATE) && !soonSoundPlayed.current) {
+            soonSound.current?.play().catch(e => console.error("Error playing soon sound:", e));
             soonSoundPlayed.current = true;
         }
 
         if (newTimeLeft <= 0) {
             if (isReadyStage) {
-                startRound();
+                startRound(); // currentRound will become 1
             } else if (isRestTime) {
-                startRound();
+                // After rest, start the next work round. currentRound is already set to the completed round.
+                startRound(); // currentRound will be incremented
             } else { // Work round finished
-                if (totalRounds > 0 && currentRound >= totalRounds) {
-                    finishSound.current.play();
-                    resetTimer(); // Trigger reset when the last round finishes
-                } else {
+                if (totalRounds > 0 && currentRound >= totalRounds) { // Last round finished
+                    finishSound.current?.play().catch(e => console.error("Error playing finish sound (session end):", e));
+                    resetTimer();
+                } else { // Not the last round, or infinite rounds
                     startRest();
                 }
             }
         }
-    }, [running, isRestTime, isReadyStage, restTime, roundTime, totalRounds, currentRound, startRound, startRest]); // Dependencies for tick
+    }, [running, isRestTime, isReadyStage, restTime, roundTime, totalRounds, currentRound, startRound, startRest, resetTimer, readySound, soonSound, finishSound]);
 
     function useInterval(callback, delay) {
         const savedCallback = useRef();
@@ -230,74 +264,60 @@ const Timer = () => {
     useInterval(tick, running ? RENDER_RATE : null);
 
     const toggleTimer = () => {
-        initializeAudio();
+        initializeAudio(); // Ensure audio is ready on first interaction
         if (!running) {
-            if (currentRound === 0 && !isRestTime && !isReadyStage) { // Fresh start or after reset
+            // If starting from a fresh (reset) state or very first start
+            if (currentRound === 0 && !isRestTime && !isReadyStage) {
                 startReadyStage();
             } else {
-                // Resuming: Recalculate startTime to continue from current timeLeft
-                let currentPhaseDuration = isReadyStage ? READY_TIME : (isRestTime ? restTime : roundTime);
-                startTime.current = Date.now() - (currentPhaseDuration - timeLeft);
+                // Resuming: Recalculate startTime based on current timeLeft to continue accurately
+                let currentPhaseNominalDuration = isReadyStage ? READY_TIME : (isRestTime ? restTime : roundTime);
+                startTime.current = Date.now() - (currentPhaseNominalDuration - timeLeft);
             }
             setRunning(true);
-            if (sessionStartTime.current === null) { // Only set if it's a new session start
+            if (sessionStartTime.current === null) {
                  sessionStartTime.current = Date.now();
             }
         } else {
             setRunning(false);
-            // timeLeft will hold the paused time.
+            // timeLeft holds the paused time. calculateFinishTime (via useEffect on currentTime) will update ETA.
         }
-    };
-
-    const resetTimer = () => {
-        setRunning(false);
-        setCurrentRound(0);
-        setIsRestTime(false);
-        setIsReadyStage(false);
-        setTimeLeft(roundTime); // This will trigger useEffect to update finishTime
-        sessionStartTime.current = null;
-        readySoundPlayed.current = false;
-        soonSoundPlayed.current = false;
     };
 
     const changeTotalRounds = (amount) => {
         setTotalRounds(prev => {
-            const newValue = Math.max(0, prev + amount);
+            const newValue = Math.max(0, prev + amount); // Allow 0 for infinite
             saveToLocalStorage('totalRounds', newValue);
             return newValue;
         });
-        // useEffect will handle finishTime recalculation
     };
 
     const changeRoundTime = (amount) => {
         setRoundTime(prev => {
             const newTime = Math.max(30 * SECOND, prev + amount * SECOND);
             saveToLocalStorage('roundTime', newTime);
-            // If timer is stopped and in a work phase, or just reset, update timeLeft
-            if (!running && !isRestTime && !isReadyStage && currentRound === 0) {
-                setTimeLeft(newTime);
-            } else if (!running && !isRestTime && !isReadyStage && currentRound > 0) {
-                // If stopped mid-round, and round time changes, what should timeLeft be?
-                // For simplicity, if reset, it will take new roundTime.
-                // If paused mid-round, changing roundTime might be complex for timeLeft.
-                // Current logic: only updates timeLeft if "fully stopped" or reset.
+            if (!running && currentRound === 0 && !isRestTime && !isReadyStage) {
+                setTimeLeft(newTime); // Update displayed timeLeft if idle
             }
+            // If running or paused mid-round, timeLeft for current phase persists.
+            // calculateFinishTime will update ETA based on new roundTime for future rounds.
             return newTime;
         });
-        // useEffect will handle finishTime recalculation
     };
 
     const changeRestTime = (amount) => {
         setRestTime(prev => {
             const newTime = Math.max(10 * SECOND, prev + amount * SECOND);
             saveToLocalStorage('restTime', newTime);
-            // If timer is stopped and in a rest phase, update timeLeft
             if (!running && isRestTime) {
+                // If paused during a rest, update timeLeft to the new restTime.
+                // This is a choice: alternatively, could let it run out original rest time.
+                // For simplicity and user expectation, if rest time setting changes while paused in rest,
+                // it makes sense for timeLeft to reflect that.
                 setTimeLeft(newTime);
             }
             return newTime;
         });
-        // useEffect will handle finishTime recalculation
     };
 
     const formatTime = (time) => {
@@ -312,24 +332,16 @@ const Timer = () => {
         let minutes = date.getMinutes();
         const ampm = hours >= 12 ? 'pm' : 'am';
         hours = hours % 12 || 12;
-        minutes = minutes < 10 ? '0' + minutes : minutes;
-        return `${hours}:${minutes} ${ampm}`;
+        minutes = minutes < 10 ? '0' + minutes : minutes.toString();
+        return `${hours}:${minutes.padStart(2, '0')} ${ampm}`;
     };
 
-    // Initializing timeLeft based on current state if not running
-    // This is useful if roundTime changes while timer is stopped but not reset to round 0.
+    // This useEffect ensures timeLeft reflects roundTime when idle, if roundTime changes.
     useEffect(() => {
-        if (!running) {
-            if (isReadyStage) {
-                // setTimeLeft(READY_TIME); // Usually set by startReadyStage
-            } else if (isRestTime) {
-                // setTimeLeft(restTime); // Usually set by startRest
-            } else if (currentRound === 0) { // idle, before first start or after reset
-                 setTimeLeft(roundTime);
-            }
-            // If paused mid-round (currentRound > 0, not isRestTime, not isReadyStage), timeLeft should persist.
+        if (!running && currentRound === 0 && !isRestTime && !isReadyStage) {
+            setTimeLeft(roundTime);
         }
-    }, [roundTime, restTime, running, isRestTime, isReadyStage, currentRound]);
+    }, [roundTime, running, currentRound, isRestTime, isReadyStage]);
 
 
     return (
@@ -345,7 +357,12 @@ const Timer = () => {
             <Row className="justify-content-center mt-1">
                 <Col md="auto">
                     <div className="status-display">
-                        {running ? (isReadyStage ? 'Get Ready' : (isRestTime ? `Rest ${currentRound > 0 ? currentRound : ''}`.trim() : `Round ${currentRound}`)) : (currentRound === 0 ? 'Stopped' : `Paused - Round ${currentRound}`)}
+                        {running ?
+                            (isReadyStage ? 'Get Ready' : (isRestTime ? `Rest ${currentRound > 0 ? currentRound : ''}`.trim() : `Round ${currentRound}`)) :
+                            (currentRound === 0 && !isReadyStage && !isRestTime ? 'Stopped' :
+                                (isReadyStage ? 'Paused - Get Ready' :
+                                (isRestTime ? `Paused - Rest ${currentRound > 0 ? currentRound : ''}`.trim() : `Paused - Round ${currentRound}`)))
+                        }
                     </div>
                 </Col>
             </Row>
