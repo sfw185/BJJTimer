@@ -1,6 +1,6 @@
-import { 
-  createInitialState, 
-  TIMER_PHASES, 
+import {
+  createInitialState,
+  TIMER_PHASES,
   TIMER_CONSTANTS,
   TIMER_CONSTANTS_DERIVED,
   getCurrentPhaseDuration,
@@ -25,13 +25,10 @@ export class TimerLogic {
     );
 
     this.state = createInitialState(roundTime, restTime, totalRounds);
-    this.audioManager = new AudioManager();
+    this.audioManager = AudioManager.getInstance();
     this.subscribers = new Set();
     this.intervalId = null;
     this.lastActionTime = 0; // For debouncing rapid actions
-    
-    // Initialize audio
-    this.audioManager.initialize();
   }
 
   /**
@@ -87,8 +84,9 @@ export class TimerLogic {
   start() {
     // Prevent double-start race condition
     if (this.state.isRunning) return;
-    
-    this.audioManager.initialize(); // Ensure audio is ready
+
+    // Initialize and ensure audio is loaded on user interaction (required for iOS)
+    this.audioManager.initialize();
 
     // Capture precise start time immediately
     const now = Date.now();
@@ -120,7 +118,7 @@ export class TimerLogic {
   pause() {
     // Prevent double-pause race condition
     if (!this.state.isRunning) return;
-    
+
     this.state.isRunning = false;
     this.stopTicking();
     this.notifySubscribers();
@@ -132,8 +130,8 @@ export class TimerLogic {
   reset() {
     this.stopTicking();
     this.state = createInitialState(
-      this.state.roundTime, 
-      this.state.restTime, 
+      this.state.roundTime,
+      this.state.restTime,
       this.state.totalRounds
     );
     this.notifySubscribers();
@@ -162,7 +160,7 @@ export class TimerLogic {
     if (this.intervalId !== null) {
       clearInterval(this.intervalId);
     }
-    
+
     this.intervalId = setInterval(() => {
       this.tick();
     }, TIMER_CONSTANTS_DERIVED.RENDER_RATE);
@@ -190,14 +188,14 @@ export class TimerLogic {
     const elapsedTimeInPhase = now - this.state.startTime;
     const newTimeLeft = currentPhaseDuration - elapsedTimeInPhase;
 
-    // Check for phase transition BEFORE updating timeLeft for precise timing
-    const willTransition = newTimeLeft <= 0;
-    if (willTransition) {
+    // Update timeLeft first
+    this.state.timeLeft = newTimeLeft;
+
+    // Check for phase transition using the utility function
+    if (shouldTransitionPhase(this.state)) {
       this.handlePhaseTransition();
       return; // handlePhaseTransition will handle the rest
     }
-
-    this.state.timeLeft = newTimeLeft;
 
     // Check for audio cues
     this.checkAudioCues();
@@ -212,17 +210,17 @@ export class TimerLogic {
 
     // Play "ready" sound towards end of rest period
     // Use a larger buffer to ensure we don't miss the trigger
-    if (phase === TIMER_PHASES.REST && 
-        timeLeft <= TIMER_CONSTANTS.READY_TIME && 
+    if (phase === TIMER_PHASES.REST &&
+        timeLeft <= TIMER_CONSTANTS.READY_TIME &&
         !readySoundPlayed) {
       this.audioManager.playReady();
       this.state.readySoundPlayed = true;
     }
 
-    // Play "soon" sound towards end of work round  
+    // Play "soon" sound towards end of work round
     // Use a larger buffer to ensure we don't miss the trigger
-    if (phase === TIMER_PHASES.WORK && 
-        timeLeft <= TIMER_CONSTANTS.SOON_TIME && 
+    if (phase === TIMER_PHASES.WORK &&
+        timeLeft <= TIMER_CONSTANTS.SOON_TIME + 500 &&
         !soonSoundPlayed) {
       this.audioManager.playSoon();
       this.state.soonSoundPlayed = true;
