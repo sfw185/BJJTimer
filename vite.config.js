@@ -18,6 +18,8 @@ export default defineConfig({
       ],
       manifest: false, // Use existing manifest file
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         // Pre-cache all matching assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,mp3}'],
         // Use network-first strategy for navigation and assets, falling back to cache when offline
@@ -31,7 +33,7 @@ export default defineConfig({
               networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 1,
-                maxAgeSeconds: 24 * 60 * 60 // 1 day
+                maxAgeSeconds: 60 * 60 // 1 hour for HTML
               },
               cacheableResponse: {
                 statuses: [0, 200]

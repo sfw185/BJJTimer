@@ -43,6 +43,12 @@ export class AudioManager {
         this.sounds.ready = new Audio('ready.mp3');
         this.sounds.finish = new Audio('finish.mp3');
 
+        // Set volume to maximum (1.0 = 100%)
+        this.sounds.start.volume = 1.0;
+        this.sounds.soon.volume = 1.0;
+        this.sounds.ready.volume = 1.0;
+        this.sounds.finish.volume = 1.0;
+
         // Preload audio
         this.sounds.start.load();
         this.sounds.soon.load();
