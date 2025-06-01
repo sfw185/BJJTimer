@@ -1,0 +1,19 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "devCommand": "npm run dev",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
+  "github": {
+    "silent": true,
+    "autoJobCancelation": false
+  },
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  }
+}
