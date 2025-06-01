@@ -101,7 +101,7 @@ export const useTimer = () => {
   const formatters = {
     formatTime: (time) => {
       const minutes = Math.floor(time / (TIMER_CONSTANTS.SECOND * 60));
-      const seconds = Math.floor((time % (TIMER_CONSTANTS.SECOND * 60)) / TIMER_CONSTANTS.SECOND);
+      const seconds = Math.ceil((time % (TIMER_CONSTANTS.SECOND * 60)) / TIMER_CONSTANTS.SECOND);
       return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     },
 
