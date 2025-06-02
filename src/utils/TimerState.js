@@ -5,22 +5,19 @@
 
 export const TIMER_PHASES = {
   IDLE: 'idle',
-  READY: 'ready', 
+  READY: 'ready',
   WORK: 'work',
   REST: 'rest'
 };
 
 export const TIMER_CONSTANTS = {
   SECOND: 1000,
-  UPDATES_PER_SECOND: 10,
+  MINUTE: 60 * 1000,
+  RENDER_RATE: 1000 / 30,
   READY_TIME: 3 * 1000,
   SOON_TIME: 10 * 1000,
   MIN_ROUND_TIME: 30 * 1000,
   MIN_REST_TIME: 10 * 1000
-};
-
-export const TIMER_CONSTANTS_DERIVED = {
-  RENDER_RATE: TIMER_CONSTANTS.SECOND / TIMER_CONSTANTS.UPDATES_PER_SECOND
 };
 
 /**
@@ -121,21 +118,21 @@ export const createPhaseTransition = (state, newPhase) => {
         readySoundPlayed: true
       };
       break;
-      
+
     case TIMER_PHASES.WORK:
       updates = {
         ...updates,
         timeLeft: state.roundTime,
         currentRound: state.currentRound + 1
       };
-      break;      
+      break;
     case TIMER_PHASES.REST:
       updates = {
         ...updates,
         timeLeft: state.restTime
       };
       break;
-      
+
     case TIMER_PHASES.IDLE:
       updates = {
         ...updates,

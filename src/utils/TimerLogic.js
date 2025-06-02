@@ -2,7 +2,6 @@ import {
   createInitialState,
   TIMER_PHASES,
   TIMER_CONSTANTS,
-  TIMER_CONSTANTS_DERIVED,
   getCurrentPhaseDuration,
   shouldTransitionPhase,
   getNextPhase,
@@ -163,7 +162,7 @@ export class TimerLogic {
 
     this.intervalId = setInterval(() => {
       this.tick();
-    }, TIMER_CONSTANTS_DERIVED.RENDER_RATE);
+    }, TIMER_CONSTANTS.RENDER_RATE);
   }
 
   /**
@@ -209,7 +208,6 @@ export class TimerLogic {
     const { timeLeft, phase, readySoundPlayed, soonSoundPlayed } = this.state;
 
     // Play "ready" sound towards end of rest period
-    // Use a larger buffer to ensure we don't miss the trigger
     if (phase === TIMER_PHASES.REST &&
         timeLeft <= TIMER_CONSTANTS.READY_TIME &&
         !readySoundPlayed) {
@@ -218,9 +216,8 @@ export class TimerLogic {
     }
 
     // Play "soon" sound towards end of work round
-    // Use a larger buffer to ensure we don't miss the trigger
     if (phase === TIMER_PHASES.WORK &&
-        timeLeft <= TIMER_CONSTANTS.SOON_TIME + 500 &&
+        timeLeft <= TIMER_CONSTANTS.SOON_TIME &&
         !soonSoundPlayed) {
       this.audioManager.playSoon();
       this.state.soonSoundPlayed = true;

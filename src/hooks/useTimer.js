@@ -8,13 +8,13 @@ import { loadFromLocalStorage, saveToLocalStorage } from '../utils/storage';
  */
 export const useTimer = () => {
   // Load initial settings from localStorage
-  const initialRoundTime = loadFromLocalStorage('roundTime', 5 * 60 * TIMER_CONSTANTS.SECOND);
+  const initialRoundTime = loadFromLocalStorage('roundTime', 5 * TIMER_CONSTANTS.MINUTE);
   const initialRestTime = loadFromLocalStorage('restTime', 20 * TIMER_CONSTANTS.SECOND);
   const initialTotalRounds = loadFromLocalStorage('totalRounds', 0);
 
   // Create timer logic instance
   const timerLogic = useRef(null);
-  
+
   // Initialize timer logic
   if (!timerLogic.current) {
     timerLogic.current = new TimerLogic({
@@ -26,7 +26,7 @@ export const useTimer = () => {
 
   // Timer state
   const [timerState, setTimerState] = useState(() => timerLogic.current.getState());
-  
+
   // Current time for display and ETA calculations
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -100,9 +100,12 @@ export const useTimer = () => {
   // Formatters
   const formatters = {
     formatTime: (time) => {
-      const minutes = Math.floor(time / (TIMER_CONSTANTS.SECOND * 60));
-      const seconds = Math.ceil((time % (TIMER_CONSTANTS.SECOND * 60)) / TIMER_CONSTANTS.SECOND);
-      return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+      // Using Math.ceil for countdowns makes the display show the current second
+      // until it has fully elapsed. E.g., 2999ms remaining is displayed as "3 seconds left".
+      const totalSeconds = Math.max(0, Math.ceil(time / 1000));
+      const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+      const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+      return `${minutes}:${seconds}`;
     },
 
     formatCurrentTime: (date) => {
@@ -122,7 +125,7 @@ export const useTimer = () => {
     isIdle: timerState.phase === TIMER_PHASES.IDLE && timerState.currentRound === 0,
     isRestPhase: timerState.phase === TIMER_PHASES.REST || timerState.phase === TIMER_PHASES.READY,
     isEndingSoon: timerState.phase === TIMER_PHASES.WORK && timerState.timeLeft <= TIMER_CONSTANTS.SOON_TIME,
-    
+
     // Status text
     getStatusText: () => {
       if (timerState.isRunning) {
