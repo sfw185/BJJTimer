@@ -216,8 +216,10 @@ export class TimerLogic {
     }
 
     // Play "soon" sound towards end of work round
+    // Use a time window to ensure we don't miss the exact moment
     if (phase === TIMER_PHASES.WORK &&
         timeLeft <= TIMER_CONSTANTS.SOON_TIME &&
+        timeLeft > (TIMER_CONSTANTS.SOON_TIME - TIMER_CONSTANTS.RENDER_RATE * 2) &&
         !soonSoundPlayed) {
       this.audioManager.playSoon();
       this.state.soonSoundPlayed = true;
