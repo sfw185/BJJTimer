@@ -201,9 +201,14 @@ const Settings = () => {
             
             <hr className="my-4" />
             
-            <div className="mt-3 d-flex justify-content-between">
-              <a href="https://github.com/sfw185/BJJTimer" target="_blank" rel="noopener noreferrer" className="text-muted small">View on GitHub</a>
-              <a href="mailto:simon@wardan.com?subject=BJJ%20Timer%20Feedback" className="text-muted small">Send Feedback</a>
+            <div className="mt-3">
+              <div className="d-flex justify-content-between mb-2">
+                <a href="https://github.com/sfw185/BJJTimer" target="_blank" rel="noopener noreferrer" className="text-muted small">View on GitHub</a>
+                <a href="mailto:simon@wardan.com?subject=BJJ%20Timer%20Feedback" className="text-muted small">Send Feedback</a>
+              </div>
+              <div className="text-center">
+                <span className="text-muted small">Version {typeof __GIT_HASH__ !== 'undefined' ? __GIT_HASH__ : 'dev'}</span>
+              </div>
             </div>
           </Form>
         </Offcanvas.Body>

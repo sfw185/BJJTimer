@@ -1,8 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execSync } from 'child_process'
+
+// Get git hash at build time
+const getGitHash = () => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch (error) {
+    return 'unknown'
+  }
+}
 
 export default defineConfig({
+  define: {
+    __GIT_HASH__: JSON.stringify(getGitHash())
+  },
   plugins: [
     react(),
     VitePWA({
