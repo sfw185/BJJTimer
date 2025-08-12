@@ -19,6 +19,9 @@
     "react-bootstrap-icons": "^1.11.3",
     "react-dom": "^19.1.0"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "devDependencies": {
     "@babel/preset-env": "^7.26.3",
     "@babel/preset-react": "^7.26.3",
