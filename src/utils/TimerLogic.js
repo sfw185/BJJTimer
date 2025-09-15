@@ -272,24 +272,11 @@ export class TimerLogic {
   }
 
   /**
-   * Cleanup method with enhanced protection
+   * Cleanup method
    */
   destroy() {
     this.stopTicking();
-
-    // Double-check interval cleanup with timeout fallback
-    if (this.intervalId !== null) {
-      setTimeout(() => {
-        if (this.intervalId !== null) {
-          clearInterval(this.intervalId);
-          this.intervalId = null;
-        }
-      }, 0);
-    }
-
     this.subscribers.clear();
     this.state.isRunning = false;
-    this.lastActionTime = 0;
-    this.lastNotifyTime = 0;
   }
 }

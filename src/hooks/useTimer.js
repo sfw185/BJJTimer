@@ -13,44 +13,24 @@ export const useTimer = () => {
   const initialTotalRounds = loadFromLocalStorage('totalRounds', 0);
 
   // Create timer logic instance
-  const timerLogic = useRef(null);
-
-  // Initialize timer logic
-  if (!timerLogic.current) {
-    timerLogic.current = new TimerLogic({
-      roundTime: initialRoundTime,
-      restTime: initialRestTime,
-      totalRounds: initialTotalRounds
-    });
-  }
+  const timerLogic = useRef(new TimerLogic({
+    roundTime: initialRoundTime,
+    restTime: initialRestTime,
+    totalRounds: initialTotalRounds
+  }));
 
   // Timer state
-  const [timerState, setTimerState] = useState(() => timerLogic.current.getState());
-
-  // Current time for display and ETA calculations
+  const [timerState, setTimerState] = useState(timerLogic.current.getState());
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Subscribe to timer updates
+  // Subscribe to timer updates and update current time periodically
   useEffect(() => {
-    const unsubscribe = timerLogic.current.subscribe((newState) => {
-      setTimerState(newState);
-    });
+    const unsubscribe = timerLogic.current.subscribe(setTimerState);
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
 
-    return unsubscribe;
-  }, []);
-
-  // Update current time periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 10000);
-    setCurrentTime(new Date());
-
-    return () => clearInterval(interval);
-  }, []);
-  // Cleanup on unmount
-  useEffect(() => {
     return () => {
+      unsubscribe();
+      clearInterval(interval);
       if (timerLogic.current) {
         timerLogic.current.destroy();
       }
@@ -97,6 +77,7 @@ export const useTimer = () => {
       actions.updateTotalRounds(newRounds);
     }
   };
+
   // Memoized formatters to prevent recreation on every render
   const formatters = useMemo(() => ({
     formatTime: (time) => {
@@ -110,8 +91,9 @@ export const useTimer = () => {
 
     formatCurrentTime: (date) => {
       if (!date) return '';
-      let hours = date.getHours();
-      let minutes = date.getMinutes();
+      const d = new Date(date);
+      let hours = d.getHours();
+      let minutes = d.getMinutes();
       const ampm = hours >= 12 ? 'pm' : 'am';
       hours = hours % 12 || 12;
       minutes = minutes < 10 ? '0' + minutes : minutes.toString();
@@ -120,42 +102,43 @@ export const useTimer = () => {
   }), []);
 
   // Computed state
-  const computed = {
-    // UI state helpers
-    isIdle: timerState.phase === TIMER_PHASES.IDLE && timerState.currentRound === 0,
-    isRestPhase: timerState.phase === TIMER_PHASES.REST || timerState.phase === TIMER_PHASES.READY,
-    isEndingSoon: timerState.phase === TIMER_PHASES.WORK && timerState.timeLeft <= TIMER_CONSTANTS.SOON_TIME,
+  const isIdle = timerState.phase === TIMER_PHASES.IDLE && timerState.currentRound === 0;
 
-    // Status text
-    getStatusText: () => {
-      if (timerState.isRunning) {
+  const getStatusText = useCallback(() => {
+    if (timerState.isRunning) {
+      switch (timerState.phase) {
+        case TIMER_PHASES.READY:
+          return 'Get Ready';
+        case TIMER_PHASES.REST:
+          return `Rest ${timerState.currentRound > 0 ? timerState.currentRound : ''}`.trim();
+        case TIMER_PHASES.WORK:
+          return `Round ${timerState.currentRound}`;
+        default:
+          return 'Running';
+      }
+    } else {
+      if (isIdle) {
+        return 'Stopped';
+      } else {
         switch (timerState.phase) {
           case TIMER_PHASES.READY:
-            return 'Get Ready';
+            return 'Paused - Get Ready';
           case TIMER_PHASES.REST:
-            return `Rest ${timerState.currentRound > 0 ? timerState.currentRound : ''}`.trim();
+            return `Paused - Rest ${timerState.currentRound > 0 ? timerState.currentRound : ''}`.trim();
           case TIMER_PHASES.WORK:
-            return `Round ${timerState.currentRound}`;
+            return `Paused - Round ${timerState.currentRound}`;
           default:
-            return 'Running';
-        }
-      } else {
-        if (computed.isIdle) {
-          return 'Stopped';
-        } else {
-          switch (timerState.phase) {
-            case TIMER_PHASES.READY:
-              return 'Paused - Get Ready';
-            case TIMER_PHASES.REST:
-              return `Paused - Rest ${timerState.currentRound > 0 ? timerState.currentRound : ''}`.trim();
-            case TIMER_PHASES.WORK:
-              return `Paused - Round ${timerState.currentRound}`;
-            default:
-              return 'Paused';
-          }
+            return 'Paused';
         }
       }
     }
+  }, [timerState.isRunning, timerState.phase, timerState.currentRound, isIdle]);
+
+  const computed = {
+    isIdle,
+    isRestPhase: timerState.phase === TIMER_PHASES.REST || timerState.phase === TIMER_PHASES.READY,
+    isEndingSoon: timerState.phase === TIMER_PHASES.WORK && timerState.timeLeft <= TIMER_CONSTANTS.SOON_TIME,
+    getStatusText
   };
 
   return {
