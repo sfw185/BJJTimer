@@ -28,6 +28,7 @@ export class TimerLogic {
     this.subscribers = new Set();
     this.intervalId = null;
     this.lastActionTime = 0; // For debouncing rapid actions
+    this.lastNotifyTime = 0; // For throttling subscriber notifications
   }
 
   /**
@@ -199,7 +200,12 @@ export class TimerLogic {
     // Check for audio cues
     this.checkAudioCues();
 
-    this.notifySubscribers();
+    // Throttle UI updates to reduce CPU usage (update UI every 100ms)
+    const shouldNotify = !this.lastNotifyTime || (now - this.lastNotifyTime) >= 100;
+    if (shouldNotify) {
+      this.lastNotifyTime = now;
+      this.notifySubscribers();
+    }
   }
   /**
    * Check and play audio cues based on current state
@@ -266,10 +272,24 @@ export class TimerLogic {
   }
 
   /**
-   * Cleanup method
+   * Cleanup method with enhanced protection
    */
   destroy() {
     this.stopTicking();
+
+    // Double-check interval cleanup with timeout fallback
+    if (this.intervalId !== null) {
+      setTimeout(() => {
+        if (this.intervalId !== null) {
+          clearInterval(this.intervalId);
+          this.intervalId = null;
+        }
+      }, 0);
+    }
+
     this.subscribers.clear();
+    this.state.isRunning = false;
+    this.lastActionTime = 0;
+    this.lastNotifyTime = 0;
   }
 }

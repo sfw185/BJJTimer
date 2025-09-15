@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { TimerLogic } from '../utils/TimerLogic';
 import { TIMER_PHASES, TIMER_CONSTANTS } from '../utils/TimerState';
 import { loadFromLocalStorage, saveToLocalStorage } from '../utils/storage';
@@ -97,8 +97,8 @@ export const useTimer = () => {
       actions.updateTotalRounds(newRounds);
     }
   };
-  // Formatters
-  const formatters = {
+  // Memoized formatters to prevent recreation on every render
+  const formatters = useMemo(() => ({
     formatTime: (time) => {
       // Using Math.ceil for countdowns makes the display show the current second
       // until it has fully elapsed. E.g., 2999ms remaining is displayed as "3 seconds left".
@@ -117,7 +117,7 @@ export const useTimer = () => {
       minutes = minutes < 10 ? '0' + minutes : minutes.toString();
       return `${hours}:${minutes.padStart(2, '0')} ${ampm}`;
     }
-  };
+  }), []);
 
   // Computed state
   const computed = {

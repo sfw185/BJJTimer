@@ -1,25 +1,12 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { PlayFill, StopFill, ArrowCounterclockwise, DashLg, PlusLg, Infinity, ClockFill } from 'react-bootstrap-icons';
 import './Timer.css';
-import { loadFromLocalStorage } from './utils/storage';
 import Settings from './components/Settings';
 import { useTimer } from './hooks/useTimer';
 
 const Timer = () => {
     const { state, actions, formatters, computed } = useTimer();
-
-    // Apply color settings on mount
-    useEffect(() => {
-        const colorSettings = loadFromLocalStorage('colorSettings', null);
-        if (colorSettings) {
-            document.documentElement.style.setProperty('--background-color', colorSettings.backgroundColor);
-            document.documentElement.style.setProperty('--text-color', colorSettings.textColor);
-            document.documentElement.style.setProperty('--current-time-color', colorSettings.currentTimeColor);
-            document.documentElement.style.setProperty('--rest-phase-color', colorSettings.restPhaseColor);
-            document.documentElement.style.setProperty('--ending-soon-color', colorSettings.endingSoonColor);
-        }
-    }, []);
 
     return (
         <Container fluid id="timer" className={computed.isRestPhase ? 'rest-phase' : 'round-phase'}>

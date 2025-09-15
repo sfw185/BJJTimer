@@ -19,10 +19,12 @@ const Settings = () => {
   const handleShow = () => setShow(true);
 
   const handleColorChange = (colorKey, value) => {
-    const newColors = { ...colors, [colorKey]: value };
-    setColors(newColors);
-    saveToLocalStorage('colorSettings', newColors);
-    applyColors(newColors);
+    setColors(prevColors => {
+      const newColors = { ...prevColors, [colorKey]: value };
+      saveToLocalStorage('colorSettings', newColors);
+      applyColors(newColors);
+      return newColors;
+    });
   };
 
   const resetColors = () => {
