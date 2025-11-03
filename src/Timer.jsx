@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { PlayFill, StopFill, ArrowCounterclockwise, DashLg, PlusLg, Infinity, ClockFill } from 'react-bootstrap-icons';
 import './Timer.css';
@@ -7,6 +7,26 @@ import { useTimer } from './hooks/useTimer';
 
 const Timer = () => {
     const { state, actions, formatters, computed } = useTimer();
+
+    // Spacebar keyboard shortcut for start/stop
+    useEffect(() => {
+        const handleKeyPress = (event) => {
+            // Check if spacebar is pressed and not in an input/textarea
+            if (event.code === 'Space' &&
+                event.target.tagName !== 'INPUT' &&
+                event.target.tagName !== 'TEXTAREA') {
+                event.preventDefault(); // Prevent page scrolling
+                actions.toggle();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+
+        // Cleanup listener on unmount
+        return () => {
+            window.removeEventListener('keydown', handleKeyPress);
+        };
+    }, [actions]);
 
     return (
         <Container fluid id="timer" className={computed.isRestPhase ? 'rest-phase' : 'round-phase'}>
