@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Offcanvas, Form } from 'react-bootstrap';
 import { GearFill } from 'react-bootstrap-icons';
 import { loadFromLocalStorage, saveToLocalStorage } from '../utils/storage';
+import { AudioManager } from '../utils/AudioManager';
 
 const DEFAULT_COLORS = {
   backgroundColor: '#000000',
@@ -11,18 +12,62 @@ const DEFAULT_COLORS = {
   endingSoonColor: '#DC3545',
 };
 
+const DEFAULT_VOLUME = 100;
+
+const ColorInput = ({ label, value, onChange }) => (
+  <Form.Group className="mb-3">
+    <Form.Label>{label}</Form.Label>
+    <div className="d-flex align-items-center">
+      <Form.Control
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <Form.Control
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="ms-2"
+      />
+      <div
+        className="ms-2"
+        style={{
+          width: '30px',
+          height: '30px',
+          backgroundColor: value,
+          border: '1px solid #ccc'
+        }}
+      />
+    </div>
+  </Form.Group>
+);
+
+const applyColors = (colorSet) => {
+  document.documentElement.style.setProperty('--background-color', colorSet.backgroundColor);
+  document.documentElement.style.setProperty('--text-color', colorSet.textColor);
+  document.documentElement.style.setProperty('--current-time-color', colorSet.currentTimeColor);
+  document.documentElement.style.setProperty('--rest-phase-color', colorSet.restPhaseColor);
+  document.documentElement.style.setProperty('--ending-soon-color', colorSet.endingSoonColor);
+};
+
 const Settings = () => {
   const [show, setShow] = useState(false);
   const [colors, setColors] = useState(loadFromLocalStorage('colorSettings', DEFAULT_COLORS));
+  const [volume, setVolume] = useState(loadFromLocalStorage('volume', DEFAULT_VOLUME));
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
+
+  const handleVolumeChange = (newVolume) => {
+    const vol = parseInt(newVolume, 10);
+    setVolume(vol);
+    AudioManager.getInstance().setVolume(vol);
+  };
 
   const handleColorChange = (colorKey, value) => {
     setColors(prevColors => {
       const newColors = { ...prevColors, [colorKey]: value };
       saveToLocalStorage('colorSettings', newColors);
-      applyColors(newColors);
       return newColors;
     });
   };
@@ -30,18 +75,9 @@ const Settings = () => {
   const resetColors = () => {
     setColors(DEFAULT_COLORS);
     saveToLocalStorage('colorSettings', DEFAULT_COLORS);
-    applyColors(DEFAULT_COLORS);
   };
 
-  const applyColors = (colorSet) => {
-    document.documentElement.style.setProperty('--background-color', colorSet.backgroundColor);
-    document.documentElement.style.setProperty('--text-color', colorSet.textColor);
-    document.documentElement.style.setProperty('--current-time-color', colorSet.currentTimeColor);
-    document.documentElement.style.setProperty('--rest-phase-color', colorSet.restPhaseColor);
-    document.documentElement.style.setProperty('--ending-soon-color', colorSet.endingSoonColor);
-  };
-
-  // Apply colors on initial load or when they change
+  // Apply colors on initial load and when they change
   useEffect(() => {
     applyColors(colors);
   }, [colors]);
@@ -63,136 +99,45 @@ const Settings = () => {
         </Offcanvas.Header>
         <Offcanvas.Body>
           <Form>
+            <h5 className="mb-3">Audio</h5>
+            <Form.Group className="mb-3">
+              <Form.Label>Volume: {volume}%</Form.Label>
+              <Form.Range
+                min={0}
+                max={100}
+                value={volume}
+                onChange={(e) => handleVolumeChange(e.target.value)}
+              />
+            </Form.Group>
+
+            <hr className="my-4" />
+
             <h5 className="mb-3">Color Customization</h5>
-            <Form.Group className="mb-3">
-              <Form.Label>Background Color</Form.Label>
-              <div className="d-flex align-items-center">
-                <Form.Control
-                  type="color"
-                  value={colors.backgroundColor}
-                  onChange={(e) => handleColorChange('backgroundColor', e.target.value)}
-                />
-                <Form.Control
-                  type="text"
-                  value={colors.backgroundColor}
-                  onChange={(e) => handleColorChange('backgroundColor', e.target.value)}
-                  className="ms-2"
-                />
-                <div 
-                  className="ms-2" 
-                  style={{ 
-                    width: '30px', 
-                    height: '30px', 
-                    backgroundColor: colors.backgroundColor,
-                    border: '1px solid #ccc'
-                  }}
-                ></div>
-              </div>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Text Color</Form.Label>
-              <div className="d-flex align-items-center">
-                <Form.Control
-                  type="color"
-                  value={colors.textColor}
-                  onChange={(e) => handleColorChange('textColor', e.target.value)}
-                />
-                <Form.Control
-                  type="text"
-                  value={colors.textColor}
-                  onChange={(e) => handleColorChange('textColor', e.target.value)}
-                  className="ms-2"
-                />
-                <div 
-                  className="ms-2" 
-                  style={{ 
-                    width: '30px', 
-                    height: '30px', 
-                    backgroundColor: colors.textColor,
-                    border: '1px solid #ccc'
-                  }}
-                ></div>
-              </div>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Current Time Color</Form.Label>
-              <div className="d-flex align-items-center">
-                <Form.Control
-                  type="color"
-                  value={colors.currentTimeColor}
-                  onChange={(e) => handleColorChange('currentTimeColor', e.target.value)}
-                />
-                <Form.Control
-                  type="text"
-                  value={colors.currentTimeColor}
-                  onChange={(e) => handleColorChange('currentTimeColor', e.target.value)}
-                  className="ms-2"
-                />
-                <div 
-                  className="ms-2" 
-                  style={{ 
-                    width: '30px', 
-                    height: '30px', 
-                    backgroundColor: colors.currentTimeColor,
-                    border: '1px solid #ccc'
-                  }}
-                ></div>
-              </div>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Rest Phase Color</Form.Label>
-              <div className="d-flex align-items-center">
-                <Form.Control
-                  type="color"
-                  value={colors.restPhaseColor}
-                  onChange={(e) => handleColorChange('restPhaseColor', e.target.value)}
-                />
-                <Form.Control
-                  type="text"
-                  value={colors.restPhaseColor}
-                  onChange={(e) => handleColorChange('restPhaseColor', e.target.value)}
-                  className="ms-2"
-                />
-                <div 
-                  className="ms-2" 
-                  style={{ 
-                    width: '30px', 
-                    height: '30px', 
-                    backgroundColor: colors.restPhaseColor,
-                    border: '1px solid #ccc'
-                  }}
-                ></div>
-              </div>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Ending Soon Color</Form.Label>
-              <div className="d-flex align-items-center">
-                <Form.Control
-                  type="color"
-                  value={colors.endingSoonColor}
-                  onChange={(e) => handleColorChange('endingSoonColor', e.target.value)}
-                />
-                <Form.Control
-                  type="text"
-                  value={colors.endingSoonColor}
-                  onChange={(e) => handleColorChange('endingSoonColor', e.target.value)}
-                  className="ms-2"
-                />
-                <div 
-                  className="ms-2" 
-                  style={{ 
-                    width: '30px', 
-                    height: '30px', 
-                    backgroundColor: colors.endingSoonColor,
-                    border: '1px solid #ccc'
-                  }}
-                ></div>
-              </div>
-            </Form.Group>
+            <ColorInput
+              label="Background Color"
+              value={colors.backgroundColor}
+              onChange={(value) => handleColorChange('backgroundColor', value)}
+            />
+            <ColorInput
+              label="Text Color"
+              value={colors.textColor}
+              onChange={(value) => handleColorChange('textColor', value)}
+            />
+            <ColorInput
+              label="Current Time Color"
+              value={colors.currentTimeColor}
+              onChange={(value) => handleColorChange('currentTimeColor', value)}
+            />
+            <ColorInput
+              label="Rest Phase Color"
+              value={colors.restPhaseColor}
+              onChange={(value) => handleColorChange('restPhaseColor', value)}
+            />
+            <ColorInput
+              label="Ending Soon Color"
+              value={colors.endingSoonColor}
+              onChange={(value) => handleColorChange('endingSoonColor', value)}
+            />
 
             <div className="mt-4">
               <p className="text-muted small mb-2">Restore all colors to their original default values.</p>
@@ -200,9 +145,9 @@ const Settings = () => {
                 Reset to Defaults
               </Button>
             </div>
-            
+
             <hr className="my-4" />
-            
+
             <div className="mt-3">
               <div className="d-flex justify-content-between mb-2">
                 <a href="https://github.com/sfw185/BJJTimer" target="_blank" rel="noopener noreferrer" className="text-muted small">View on GitHub</a>

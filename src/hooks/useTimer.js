@@ -37,46 +37,48 @@ export const useTimer = () => {
     };
   }, []);
 
-  // Actions
-  const actions = {
-    start: () => timerLogic.current.start(),
-    pause: () => timerLogic.current.pause(),
-    reset: () => timerLogic.current.reset(),
-    toggle: () => timerLogic.current.toggle(),
-
-    updateRoundTime: (newTime) => {
+  // Actions - memoized to prevent unnecessary re-renders and event listener churn
+  const actions = useMemo(() => {
+    const updateRoundTime = (newTime) => {
       const validated = Math.max(30 * TIMER_CONSTANTS.SECOND, newTime);
       timerLogic.current.updateSettings({ roundTime: validated });
       saveToLocalStorage('roundTime', validated);
-    },
+    };
 
-    updateRestTime: (newTime) => {
+    const updateRestTime = (newTime) => {
       const validated = Math.max(10 * TIMER_CONSTANTS.SECOND, newTime);
       timerLogic.current.updateSettings({ restTime: validated });
       saveToLocalStorage('restTime', validated);
-    },
+    };
 
-    updateTotalRounds: (newRounds) => {
+    const updateTotalRounds = (newRounds) => {
       const validated = Math.max(0, newRounds);
       timerLogic.current.updateSettings({ totalRounds: validated });
       saveToLocalStorage('totalRounds', validated);
-    },
+    };
 
-    changeRoundTime: (deltaSeconds) => {
-      const newTime = timerState.roundTime + (deltaSeconds * TIMER_CONSTANTS.SECOND);
-      actions.updateRoundTime(newTime);
-    },
-
-    changeRestTime: (deltaSeconds) => {
-      const newTime = timerState.restTime + (deltaSeconds * TIMER_CONSTANTS.SECOND);
-      actions.updateRestTime(newTime);
-    },
-
-    changeTotalRounds: (delta) => {
-      const newRounds = timerState.totalRounds + delta;
-      actions.updateTotalRounds(newRounds);
-    }
-  };
+    return {
+      start: () => timerLogic.current.start(),
+      pause: () => timerLogic.current.pause(),
+      reset: () => timerLogic.current.reset(),
+      toggle: () => timerLogic.current.toggle(),
+      updateRoundTime,
+      updateRestTime,
+      updateTotalRounds,
+      changeRoundTime: (deltaSeconds) => {
+        const currentRoundTime = timerLogic.current.getState().roundTime;
+        updateRoundTime(currentRoundTime + (deltaSeconds * TIMER_CONSTANTS.SECOND));
+      },
+      changeRestTime: (deltaSeconds) => {
+        const currentRestTime = timerLogic.current.getState().restTime;
+        updateRestTime(currentRestTime + (deltaSeconds * TIMER_CONSTANTS.SECOND));
+      },
+      changeTotalRounds: (delta) => {
+        const currentTotalRounds = timerLogic.current.getState().totalRounds;
+        updateTotalRounds(currentTotalRounds + delta);
+      }
+    };
+  }, []);
 
   // Memoized formatters to prevent recreation on every render
   const formatters = useMemo(() => ({

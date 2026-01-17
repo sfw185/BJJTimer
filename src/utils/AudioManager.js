@@ -1,3 +1,7 @@
+import { loadFromLocalStorage, saveToLocalStorage } from './storage';
+
+const DEFAULT_VOLUME = 100;
+
 /**
  * Audio Manager for timer sounds
  * Handles initialization, playback, and error handling for all timer audio
@@ -20,6 +24,7 @@ export class AudioManager {
     };
     this.initialized = false;
     this.enabled = true;
+    this.volume = loadFromLocalStorage('volume', DEFAULT_VOLUME);
 
     AudioManager.instance = this;
     return this;
@@ -43,11 +48,8 @@ export class AudioManager {
         this.sounds.ready = new Audio('ready.mp3');
         this.sounds.finish = new Audio('finish.mp3');
 
-        // Set volume to maximum (1.0 = 100%)
-        this.sounds.start.volume = 1.0;
-        this.sounds.soon.volume = 1.0;
-        this.sounds.ready.volume = 1.0;
-        this.sounds.finish.volume = 1.0;
+        // Set volume from saved settings
+        this.applyVolume();
 
         // Preload audio
         this.sounds.start.load();
@@ -58,14 +60,40 @@ export class AudioManager {
         this.initialized = true;
       } catch (error) {
         console.error("Error initializing audio:", error);
-        // Fallback or disable audio if there's an error (e.g., in environments without Audio)
-        this.sounds.start = { play: () => Promise.resolve(), load: () => {} };
-        this.sounds.soon = { play: () => Promise.resolve(), load: () => {} };
-        this.sounds.ready = { play: () => Promise.resolve(), load: () => {} };
-        this.sounds.finish = { play: () => Promise.resolve(), load: () => {} };
+        // Fallback: disable audio in environments without Audio support
+        const mockAudio = { play: () => Promise.resolve(), load: () => {}, volume: 1 };
+        this.sounds = { start: mockAudio, soon: mockAudio, ready: mockAudio, finish: mockAudio };
         this.enabled = false;
       }
     }
+  }
+
+  /**
+   * Apply volume to all sounds
+   */
+  applyVolume() {
+    const vol = this.volume / 100;
+    Object.values(this.sounds).forEach(sound => {
+      if (sound && sound.volume !== undefined) {
+        sound.volume = vol;
+      }
+    });
+  }
+
+  /**
+   * Set volume (0-100) and persist to storage
+   */
+  setVolume(volume) {
+    this.volume = volume;
+    saveToLocalStorage('volume', volume);
+    this.applyVolume();
+  }
+
+  /**
+   * Get current volume (0-100)
+   */
+  getVolume() {
+    return this.volume;
   }
 
   /**

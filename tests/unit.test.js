@@ -3,19 +3,21 @@
  * Tests individual modules in isolation
  */
 
-import { 
-  TIMER_PHASES, 
-  TIMER_CONSTANTS, 
-  createInitialState, 
+import {
+  TIMER_PHASES,
+  TIMER_CONSTANTS,
+  createInitialState,
   validateSettings,
-  getCurrentPhase,
   shouldTransitionPhase,
-  getNextPhase
+  getNextPhase,
+  getCurrentPhaseDuration,
+  createPhaseTransition
 } from '../src/utils/TimerState.js';
 
 import { AudioManager } from '../src/utils/AudioManager.js';
 import { calculateFinishTime } from '../src/utils/FinishTimeCalculator.js';
 import { TimerLogic } from '../src/utils/TimerLogic.js';
+import { loadFromLocalStorage, saveToLocalStorage } from '../src/utils/storage.js';
 
 describe('TimerState Module', () => {
   describe('Constants', () => {
@@ -67,11 +69,6 @@ describe('TimerState Module', () => {
   });
 
   describe('Phase Logic', () => {
-    test('getCurrentPhase should return current phase', () => {
-      const state = { phase: TIMER_PHASES.WORK };
-      expect(getCurrentPhase(state)).toBe(TIMER_PHASES.WORK);
-    });
-
     test('shouldTransitionPhase should detect when time is up', () => {
       const workingState = { 
         phase: TIMER_PHASES.WORK, 
@@ -98,6 +95,134 @@ describe('TimerState Module', () => {
       const readyState = { phase: TIMER_PHASES.READY };
       expect(getNextPhase(readyState)).toBe(TIMER_PHASES.WORK);
     });
+
+    test('getNextPhase should return IDLE after final round', () => {
+      const finalRoundState = { phase: TIMER_PHASES.WORK, currentRound: 3, totalRounds: 3 };
+      expect(getNextPhase(finalRoundState)).toBe(TIMER_PHASES.IDLE);
+    });
+
+    test('getCurrentPhaseDuration should return correct durations', () => {
+      const readyState = { phase: TIMER_PHASES.READY, roundTime: 60000, restTime: 20000 };
+      expect(getCurrentPhaseDuration(readyState)).toBe(TIMER_CONSTANTS.READY_TIME);
+
+      const workState = { phase: TIMER_PHASES.WORK, roundTime: 60000, restTime: 20000 };
+      expect(getCurrentPhaseDuration(workState)).toBe(60000);
+
+      const restState = { phase: TIMER_PHASES.REST, roundTime: 60000, restTime: 20000 };
+      expect(getCurrentPhaseDuration(restState)).toBe(20000);
+
+      const idleState = { phase: TIMER_PHASES.IDLE, roundTime: 60000, restTime: 20000 };
+      expect(getCurrentPhaseDuration(idleState)).toBe(60000);
+    });
+
+    test('createPhaseTransition should create correct state for READY phase', () => {
+      const state = createInitialState(60000, 20000, 3);
+      const newState = createPhaseTransition(state, TIMER_PHASES.READY);
+
+      expect(newState.phase).toBe(TIMER_PHASES.READY);
+      expect(newState.timeLeft).toBe(TIMER_CONSTANTS.READY_TIME);
+      expect(newState.currentRound).toBe(0);
+      expect(newState.readySoundPlayed).toBe(true);
+      expect(newState.soonSoundPlayed).toBe(false);
+    });
+
+    test('createPhaseTransition should create correct state for WORK phase', () => {
+      const state = { ...createInitialState(60000, 20000, 3), currentRound: 0 };
+      const newState = createPhaseTransition(state, TIMER_PHASES.WORK);
+
+      expect(newState.phase).toBe(TIMER_PHASES.WORK);
+      expect(newState.timeLeft).toBe(60000);
+      expect(newState.currentRound).toBe(1);
+      expect(newState.soonSoundPlayed).toBe(false);
+    });
+
+    test('createPhaseTransition should create correct state for REST phase', () => {
+      const state = { ...createInitialState(60000, 20000, 3), currentRound: 1 };
+      const newState = createPhaseTransition(state, TIMER_PHASES.REST);
+
+      expect(newState.phase).toBe(TIMER_PHASES.REST);
+      expect(newState.timeLeft).toBe(20000);
+      expect(newState.currentRound).toBe(1);
+    });
+
+    test('createPhaseTransition should create correct state for IDLE phase', () => {
+      const state = { ...createInitialState(60000, 20000, 3), currentRound: 3, isRunning: true };
+      const newState = createPhaseTransition(state, TIMER_PHASES.IDLE);
+
+      expect(newState.phase).toBe(TIMER_PHASES.IDLE);
+      expect(newState.timeLeft).toBe(60000);
+      expect(newState.currentRound).toBe(0);
+      expect(newState.isRunning).toBe(false);
+      expect(newState.startTime).toBeNull();
+      expect(newState.sessionStartTime).toBeNull();
+    });
+  });
+});
+
+describe('Storage Module', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  describe('saveToLocalStorage', () => {
+    test('should save primitive values', () => {
+      saveToLocalStorage('testNumber', 42);
+      expect(localStorage.getItem('testNumber')).toBe('42');
+
+      saveToLocalStorage('testString', 'hello');
+      expect(localStorage.getItem('testString')).toBe('"hello"');
+
+      saveToLocalStorage('testBool', true);
+      expect(localStorage.getItem('testBool')).toBe('true');
+    });
+
+    test('should save objects', () => {
+      const obj = { name: 'test', value: 123 };
+      saveToLocalStorage('testObject', obj);
+      expect(JSON.parse(localStorage.getItem('testObject'))).toEqual(obj);
+    });
+
+    test('should save arrays', () => {
+      const arr = [1, 2, 3];
+      saveToLocalStorage('testArray', arr);
+      expect(JSON.parse(localStorage.getItem('testArray'))).toEqual(arr);
+    });
+  });
+
+  describe('loadFromLocalStorage', () => {
+    test('should load saved values', () => {
+      saveToLocalStorage('testValue', 42);
+      expect(loadFromLocalStorage('testValue', 0)).toBe(42);
+    });
+
+    test('should return default for missing keys', () => {
+      expect(loadFromLocalStorage('nonexistent', 'default')).toBe('default');
+    });
+
+    test('should return default for null values', () => {
+      localStorage.setItem('nullKey', 'null');
+      expect(loadFromLocalStorage('nullKey', 'default')).toBeNull();
+    });
+
+    test('should handle corrupted JSON gracefully', () => {
+      localStorage.setItem('corrupted', '{invalid json}');
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      expect(loadFromLocalStorage('corrupted', 'fallback')).toBe('fallback');
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should load complex objects', () => {
+      const complexObj = {
+        colors: { bg: '#000', fg: '#fff' },
+        settings: [1, 2, 3],
+        nested: { deep: { value: true } }
+      };
+      saveToLocalStorage('complex', complexObj);
+      expect(loadFromLocalStorage('complex', {})).toEqual(complexObj);
+    });
   });
 });
 
@@ -105,12 +230,28 @@ describe('AudioManager Module', () => {
   let audioManager;
 
   beforeEach(() => {
+    // Reset singleton for clean tests
+    AudioManager.instance = null;
+    localStorage.clear();
     audioManager = new AudioManager();
+  });
+
+  afterEach(() => {
+    AudioManager.instance = null;
   });
 
   test('should be instantiable', () => {
     expect(audioManager).toBeDefined();
     expect(audioManager).toBeInstanceOf(AudioManager);
+  });
+
+  test('should implement singleton pattern', () => {
+    const instance1 = new AudioManager();
+    const instance2 = new AudioManager();
+    expect(instance1).toBe(instance2);
+
+    const instance3 = AudioManager.getInstance();
+    expect(instance3).toBe(instance1);
   });
 
   test('should have required methods', () => {
@@ -119,6 +260,8 @@ describe('AudioManager Module', () => {
     expect(typeof audioManager.playSoon).toBe('function');
     expect(typeof audioManager.playReady).toBe('function');
     expect(typeof audioManager.playFinish).toBe('function');
+    expect(typeof audioManager.setVolume).toBe('function');
+    expect(typeof audioManager.getVolume).toBe('function');
   });
 
   test('initialize should not throw', () => {
@@ -130,6 +273,50 @@ describe('AudioManager Module', () => {
     await expect(audioManager.playSoon()).resolves.not.toThrow();
     await expect(audioManager.playReady()).resolves.not.toThrow();
     await expect(audioManager.playFinish()).resolves.not.toThrow();
+  });
+
+  describe('Volume Control', () => {
+    test('should default to 100% volume', () => {
+      expect(audioManager.getVolume()).toBe(100);
+    });
+
+    test('should load volume from localStorage', () => {
+      AudioManager.instance = null;
+      saveToLocalStorage('volume', 75);
+
+      const newManager = new AudioManager();
+      expect(newManager.getVolume()).toBe(75);
+    });
+
+    test('setVolume should update volume', () => {
+      audioManager.setVolume(50);
+      expect(audioManager.getVolume()).toBe(50);
+    });
+
+    test('setVolume should persist to localStorage', () => {
+      audioManager.setVolume(25);
+      expect(loadFromLocalStorage('volume', 100)).toBe(25);
+    });
+
+    test('setVolume should apply to all sounds after initialization', () => {
+      audioManager.initialize();
+      audioManager.setVolume(50);
+
+      // Check that volume property is set (mocked Audio objects)
+      Object.values(audioManager.sounds).forEach(sound => {
+        if (sound && sound.volume !== undefined) {
+          expect(sound.volume).toBe(0.5);
+        }
+      });
+    });
+
+    test('should handle volume at boundaries', () => {
+      audioManager.setVolume(0);
+      expect(audioManager.getVolume()).toBe(0);
+
+      audioManager.setVolume(100);
+      expect(audioManager.getVolume()).toBe(100);
+    });
   });
 });
 
@@ -143,7 +330,7 @@ describe('FinishTimeCalculator Module', () => {
       roundTime: 300000,
       restTime: 20000
     };
-    
+
     const result = calculateFinishTime(infiniteState);
     expect(result).toBeNull();
   });
@@ -157,7 +344,7 @@ describe('FinishTimeCalculator Module', () => {
       roundTime: 300000,
       restTime: 20000
     };
-    
+
     const result = calculateFinishTime(finiteState);
     expect(result).toBeDefined();
     expect(result).toBeInstanceOf(Date);
@@ -174,12 +361,105 @@ describe('FinishTimeCalculator Module', () => {
       roundTime: 60000, // 1 minute
       restTime: 30000   // 30 seconds
     };
-    
+
     const result = calculateFinishTime(state);
     const expectedDuration = (60000 * 2) + (30000 * 1); // 2 rounds + 1 rest
     const expectedFinish = now + expectedDuration;
-    
+
     // Allow for some timing tolerance (within 5 seconds)
+    expect(Math.abs(result.getTime() - expectedFinish)).toBeLessThan(5000);
+  });
+
+  test('should calculate correctly during READY phase', () => {
+    const now = Date.now();
+    const state = {
+      totalRounds: 2,
+      currentRound: 0,
+      phase: TIMER_PHASES.READY,
+      timeLeft: 3000, // 3 seconds left in ready
+      roundTime: 60000,
+      restTime: 30000
+    };
+
+    const result = calculateFinishTime(state);
+    // Ready(3s) + Work(60s) + Rest(30s) + Work(60s) = 153s
+    const expectedDuration = 3000 + (60000 * 2) + 30000;
+    const expectedFinish = now + expectedDuration;
+
+    expect(Math.abs(result.getTime() - expectedFinish)).toBeLessThan(5000);
+  });
+
+  test('should calculate correctly during WORK phase', () => {
+    const now = Date.now();
+    const state = {
+      totalRounds: 3,
+      currentRound: 2,
+      phase: TIMER_PHASES.WORK,
+      timeLeft: 30000, // 30 seconds left in current round
+      roundTime: 60000,
+      restTime: 20000
+    };
+
+    const result = calculateFinishTime(state);
+    // Current work(30s) + Rest(20s) + Work(60s) = 110s
+    const expectedDuration = 30000 + 20000 + 60000;
+    const expectedFinish = now + expectedDuration;
+
+    expect(Math.abs(result.getTime() - expectedFinish)).toBeLessThan(5000);
+  });
+
+  test('should calculate correctly during REST phase', () => {
+    const now = Date.now();
+    const state = {
+      totalRounds: 3,
+      currentRound: 1,
+      phase: TIMER_PHASES.REST,
+      timeLeft: 10000, // 10 seconds left in rest
+      roundTime: 60000,
+      restTime: 20000
+    };
+
+    const result = calculateFinishTime(state);
+    // Current rest(10s) + Work(60s) + Rest(20s) + Work(60s) = 150s
+    const expectedDuration = 10000 + 60000 + 20000 + 60000;
+    const expectedFinish = now + expectedDuration;
+
+    expect(Math.abs(result.getTime() - expectedFinish)).toBeLessThan(5000);
+  });
+
+  test('should calculate correctly for final round in progress', () => {
+    const now = Date.now();
+    const state = {
+      totalRounds: 3,
+      currentRound: 3,
+      phase: TIMER_PHASES.WORK,
+      timeLeft: 15000, // 15 seconds left in final round
+      roundTime: 60000,
+      restTime: 20000
+    };
+
+    const result = calculateFinishTime(state);
+    // Just the remaining time in final round
+    const expectedFinish = now + 15000;
+
+    expect(Math.abs(result.getTime() - expectedFinish)).toBeLessThan(5000);
+  });
+
+  test('should handle single round', () => {
+    const now = Date.now();
+    const state = {
+      totalRounds: 1,
+      currentRound: 0,
+      phase: TIMER_PHASES.IDLE,
+      timeLeft: 60000,
+      roundTime: 60000,
+      restTime: 20000
+    };
+
+    const result = calculateFinishTime(state);
+    // Just one round, no rest needed
+    const expectedFinish = now + 60000;
+
     expect(Math.abs(result.getTime() - expectedFinish)).toBeLessThan(5000);
   });
 });

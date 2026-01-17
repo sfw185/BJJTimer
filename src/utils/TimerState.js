@@ -47,16 +47,6 @@ export const validateSettings = (roundTime, restTime, totalRounds) => ({
 });
 
 /**
- * Determines the current phase based on state
- */
-export const getCurrentPhase = (state) => {
-  if (state.currentRound === 0 && !state.isRunning) {
-    return TIMER_PHASES.IDLE;
-  }
-  return state.phase;
-};
-
-/**
  * Gets the duration for the current phase
  */
 export const getCurrentPhaseDuration = (state) => {
