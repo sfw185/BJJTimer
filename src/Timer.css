@@ -35,7 +35,7 @@ body {
 .rest-phase #display { color: var(--rest-phase-color); }
 
 .current-time {
-  font-size: clamp(1.75rem, 0.5rem + 3vw, 6rem);
+  font-size: clamp(2rem, 0.5rem + 4vw, 6rem);
   font-weight: bold;
   color: var(--current-time-color);
   margin-bottom: 0.5rem;
@@ -66,7 +66,7 @@ body {
 }
 
 .status-display {
-  font-size: clamp(1.75rem, 0.5rem + 3vw, 6rem);
+  font-size: clamp(2rem, 0.5rem + 4vw, 6rem);
   border-top: 1px solid var(--text-color);
   border-bottom: 1px solid var(--text-color);
   margin-bottom: 0.5rem;
@@ -74,7 +74,7 @@ body {
 }
 
 #display {
-  font-size: clamp(4rem, min(30vw, 40vh), 50rem);
+  font-size: clamp(5rem, min(calc((100vw - 2rem) / 2.6), 40vh), 50rem);
   line-height: 1;
   margin-bottom: clamp(0.5rem, 2vw, 2rem);
   transition: color 0.5s, opacity 0.5s;
@@ -173,7 +173,7 @@ body {
   .timer-control-group {
     margin: 0 0 0.5rem 0;
     width: 100%;
-    max-width: 280px;
+    max-width: 90%;
   }
 }
 
