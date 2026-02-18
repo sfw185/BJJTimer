@@ -8,14 +8,12 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  font-family: Arial, sans-serif;
   color: var(--text-color);
   background-color: var(--background-color);
 }
@@ -23,10 +21,11 @@ body {
 #timer {
   text-align: center;
   position: relative;
-  max-width: 1440px;
+  max-width: 2000px;
   margin: 0 auto;
   padding: 0 1rem;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -36,14 +35,14 @@ body {
 .rest-phase #display { color: var(--rest-phase-color); }
 
 .current-time {
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 0.5rem + 3vw, 6rem);
   font-weight: bold;
   color: var(--current-time-color);
   margin-bottom: 0.5rem;
 }
 
 .finish-time-container {
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 0.5rem + 0.5vw, 1.5rem);
   color: var(--current-time-color);
   opacity: 0.8;
   display: flex;
@@ -67,7 +66,7 @@ body {
 }
 
 .status-display {
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 0.5rem + 3vw, 6rem);
   border-top: 1px solid var(--text-color);
   border-bottom: 1px solid var(--text-color);
   margin-bottom: 0.5rem;
@@ -75,36 +74,10 @@ body {
 }
 
 #display {
-  font-size: 12rem;
+  font-size: clamp(4rem, min(30vw, 40vh), 50rem);
   line-height: 1;
-  margin-bottom: 2rem;
+  margin-bottom: clamp(0.5rem, 2vw, 2rem);
   transition: color 0.5s, opacity 0.5s;
-}
-
-@media (min-width: 768px) {
-  #display {
-    font-size: 16rem;
-  }
-}
-
-@media (min-width: 992px) {
-  #display {
-    font-size: 20rem;
-  }
-}
-
-@media (min-width: 1200px) {
-  .current-time {
-    font-size: 4rem;
-  }
-  
-  .status-display {
-    font-size: 4rem;
-  }
-  
-  #display {
-    font-size: 24rem;
-  }
 }
 
 .ending-soon {
@@ -128,14 +101,14 @@ body {
 /* Settings Button Styles */
 .settings-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: clamp(0.4rem, 1vw, 1.5rem);
+  right: clamp(0.4rem, 1vw, 1.5rem);
   color: var(--text-color);
   opacity: 0.7;
   transition: opacity 0.3s;
   z-index: 1000;
-  font-size: 1.5rem;
-  padding: 0.5rem;
+  font-size: clamp(1.2rem, 0.8rem + 0.5vw, 2.5rem);
+  padding: clamp(0.3rem, 0.5vw, 0.75rem);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -165,14 +138,14 @@ body {
 }
 
 .btn-success, .btn-danger, .btn-dark {
-  font-size: 1.1rem;
-  padding: 0.6rem 1.5rem;
+  font-size: clamp(1rem, 0.7rem + 0.5vw, 1.75rem);
+  padding: clamp(0.4rem, 0.8vw, 1rem) clamp(1rem, 2vw, 2.5rem);
 }
 
 /* Increment/decrement buttons */
 .btn-sm {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+  padding: clamp(0.2rem, 0.4vw, 0.5rem) clamp(0.4rem, 0.8vw, 1rem);
+  font-size: clamp(0.75rem, 0.5rem + 0.4vw, 1.25rem);
   line-height: 1.5;
 }
 
@@ -180,39 +153,20 @@ body {
   margin-right: 0;
 }
 
-/* Media queries */
-@media (max-width: 480px) {
-  #display { font-size: 8rem; }
-  .settings-btn { font-size: 1.2rem; }
-  .current-time { font-size: 2rem; }
-  .status-display { font-size: 2rem; }
-}
-
-@media (min-width: 1501px) {
-  .current-time, .status-display {
-    font-size: 4rem;
-  }
-
-  #display {
-    font-size: 28rem;
-    margin: 0;
-  }
-}
-
 /* Timer control groups */
 .timer-control-group {
-  padding: 0.75rem 1.25rem;
+  padding: clamp(0.5rem, 1vw, 1.25rem) clamp(0.75rem, 1.5vw, 2rem);
   border-radius: 0.25rem;
   background-color: rgba(255, 255, 255, 0.05);
-  min-width: 180px;
+  min-width: clamp(140px, 12vw, 280px);
   text-align: center;
   margin: 0 0.5rem;
+  font-size: clamp(0.85rem, 0.6rem + 0.5vw, 1.5rem);
 }
 
-@media (min-width: 992px) {
-  .timer-control-group {
-    min-width: 200px;
-  }
+/* Controls flex container */
+.controls-row {
+  gap: clamp(0.5rem, 2vw, 1.5rem);
 }
 
 @media (max-width: 576px) {
@@ -220,5 +174,27 @@ body {
     margin: 0 0 0.5rem 0;
     width: 100%;
     max-width: 280px;
+  }
+}
+
+/* Short viewport — landscape phones */
+@media (max-height: 500px) {
+  .current-time {
+    font-size: clamp(1rem, 2.5vw, 2rem);
+    margin-bottom: 0;
+  }
+  .status-display {
+    font-size: clamp(1rem, 2.5vw, 2rem);
+    margin-bottom: 0;
+    padding: 0.1rem 0;
+  }
+  #display {
+    margin-bottom: 0.25rem;
+  }
+  .timer-control-group {
+    padding: 0.3rem 0.75rem;
+  }
+  .controls-row {
+    gap: 0.5rem;
   }
 }

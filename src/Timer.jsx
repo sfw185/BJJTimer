@@ -53,7 +53,7 @@ const Timer = () => {
                 </Col>
             </Row>            <Row className="justify-content-center my-2">
                 <Col xs={12} lg={10} xl={8} className="mx-auto">
-                    <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-4">
+                    <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center controls-row">
                         <div className="timer-control-group">
                             <label className="me-2">Duration:</label>
                             <Button variant="secondary" size="sm" onClick={() => actions.changeRoundTime(-30)} className="d-inline-flex align-items-center">
